@@ -40,7 +40,34 @@ public partial class MainForm : Form
         tabs.SelectedIndexChanged += (s, e) => { if (tabs.SelectedTab != null) refreshers[tabs.SelectedTab](); };
         Controls.Add(tabs);
         Controls.Add(header);
+        Controls.Add(BuildMenu());
         Shown += (s, e) => RefreshAll();
+    }
+
+    MenuStrip BuildMenu()
+    {
+        var menu = new MenuStrip { BackColor = Color.White, Font = Ui.Font };
+        var file = new ToolStripMenuItem("Файл");
+        file.DropDownItems.Add(new ToolStripMenuItem("Выгрузить клиентов и заявки в Excel…", null, (s, e) => ExportExcel(), Keys.Control | Keys.E));
+        if (Db.CanManage)
+            file.DropDownItems.Add("Загрузить клиентов из Excel…", null, (s, e) => GoTo("Перенос данных"));
+        file.DropDownItems.Add("Открыть папку с базой данных", null, (s, e) => OpenDataFolder());
+        file.DropDownItems.Add(new ToolStripSeparator());
+        file.DropDownItems.Add("Выйти из учётной записи", null, (s, e) => Logout());
+        var help = new ToolStripMenuItem("Справка");
+        help.DropDownItems.Add("О программе", null, (s, e) => Ui.Info(this,
+            "CRM «Отдел продаж»\n\nПрактическая работа «Внедрение CRM-системы».\nC# WinForms, .NET 8, база данных SQLite, Excel через ClosedXML.\n\n" +
+            "Файл базы данных:\n" + Db.DbPath));
+        menu.Items.Add(file);
+        menu.Items.Add(help);
+        MainMenuStrip = menu;
+        return menu;
+    }
+
+    void OpenDataFolder()
+    {
+        Directory.CreateDirectory(Db.DataDir);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = Db.DataDir, UseShellExecute = true });
     }
 
     void AddTab(string title, Control content, Action refresh)

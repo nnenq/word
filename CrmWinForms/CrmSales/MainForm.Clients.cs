@@ -104,7 +104,7 @@ public partial class MainForm
         dGrid.CellDoubleClick += (s, e) => { if (e.RowIndex >= 0) OpenClient(Ui.SelectedTag(dGrid)); };
 
         var hint = Ui.Text("Красным выделены открытые заявки, которые обрабатываются дольше нормы. Двойной щелчок открывает карточку клиента.", Ui.Small, Ui.Muted);
-        return Ui.Stack(1, Ui.Row(Ui.Text("Показать:"), dFilter, dSum), dGrid, hint);
+        return Ui.Stack(1, Ui.Row(Ui.Text("Показать:"), dFilter, Ui.Btn("Выгрузить в Excel", (s, e) => ExportExcel()), dSum), dGrid, hint);
     }
 
     void RefreshDeals()

@@ -27,7 +27,7 @@ internal static class Program
         catch (Exception ex)
         {
             MessageBox.Show("Не удалось открыть базу данных:\n" + ex.Message +
-                            "\n\nВосстановите файл Data\\crm.json из резервной копии в папке Data\\Backups.",
+                            "\n\nСкопируйте последнюю резервную копию из папки Data\\Backups на место файла Data\\crm.db.",
                 "CRM", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
