@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="ru">
+<title>CRM «Отдел продаж»</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#F3F5F4; --panel:#FFFFFF; --ink:#18221F; --muted:#5E6B67; --line:#DCE2DF; --soft:#E9EEEC;
+  --accent:#0F6E5C; --accent-ink:#FFFFFF; --accent-soft:#DDEFEA;
+  --ok:#2E7D32; --ok-soft:#E3F2E4; --warn:#A86200; --warn-soft:#FBEFD9; --bad:#B3261E; --bad-soft:#F9E1DF;
+  --info:#2B5FA8; --info-soft:#E1EAF7;
+  --shadow:0 1px 2px rgba(20,40,35,.06),0 4px 16px rgba(20,40,35,.06);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111715; --panel:#18201D; --ink:#E4ECE9; --muted:#9AAAA4; --line:#2B3632; --soft:#202A27;
+    --accent:#4DBFA3; --accent-ink:#0B1412; --accent-soft:#1C3A33;
+    --ok:#7BC47F; --ok-soft:#1D3320; --warn:#E3A64B; --warn-soft:#3A2C14; --bad:#F08A80; --bad-soft:#3D1D1A;
+    --info:#8DB4EE; --info-soft:#1C2A40; --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111715; --panel:#18201D; --ink:#E4ECE9; --muted:#9AAAA4; --line:#2B3632; --soft:#202A27;
+  --accent:#4DBFA3; --accent-ink:#0B1412; --accent-soft:#1C3A33;
+  --ok:#7BC47F; --ok-soft:#1D3320; --warn:#E3A64B; --warn-soft:#3A2C14; --bad:#F08A80; --bad-soft:#3D1D1A;
+  --info:#8DB4EE; --info-soft:#1C2A40; --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans)}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:22px;font-weight:600} h2{font-size:18px;font-weight:600} h3{font-size:15px;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:70px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.muted{color:var(--muted)} .mono{font-family:var(--mono)} .num{font-variant-numeric:tabular-nums}
+.small{font-size:13px}
+
+/* layout */
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100%}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
+.brand{padding:0 8px}
+.brand b{display:block;font-size:17px}
+.brand span{font-size:12px;color:var(--muted)}
+.nav{display:grid;gap:2px}
+.nav button{all:unset;cursor:pointer;padding:9px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-weight:500}
+.nav button:hover{background:var(--soft)}
+.nav button.on{background:var(--accent-soft);color:var(--accent)}
+.nav button:focus-visible{outline:2px solid var(--accent)}
+.me{margin-top:auto;padding:10px;border-top:1px solid var(--line);font-size:13px;display:grid;gap:6px}
+.main{padding:22px 28px 60px;min-width:0;display:grid;gap:18px;align-content:start}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.panel>h2,.panel>h3{margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.kpi small{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.kpi b{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form .full{grid-column:1/-1}
+
+/* tables */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:500;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--soft);vertical-align:top}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--soft)}
+td.r,th.r{text-align:right}
+
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap;background:var(--soft);color:var(--muted)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.info{background:var(--info-soft);color:var(--info)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+
+/* timeline */
+.tl{display:grid;gap:0}
+.tl-item{display:grid;grid-template-columns:90px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--soft)}
+.tl-item:last-child{border-bottom:0}
+.tl-date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* bars */
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:130px 1fr 110px;gap:10px;align-items:center;font-size:13px}
+.bar .track{height:14px;background:var(--soft);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:3px}
+.cols{display:flex;align-items:flex-end;gap:10px;height:170px;padding-top:18px;border-bottom:1px solid var(--line)}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
+.col i{display:block;width:100%;max-width:46px;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px}
+.col span{font-size:11px;color:var(--muted);white-space:nowrap}
+.col-l{display:flex;gap:10px}.col-l span{flex:1;text-align:center;font-size:12px;color:var(--muted)}
+
+/* criteria */
+.crit{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--soft)}
+.crit:last-child{border-bottom:0}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+
+/* stages */
+.stages{display:grid;gap:0;counter-reset:st}
+.stage{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--soft)}
+.stage .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;background:var(--soft);color:var(--muted)}
+.stage.done .n{background:var(--ok);color:#fff} .stage.work .n{background:var(--warn);color:#fff}
+.stage select{width:auto}
+
+/* login */
+.login{min-height:100%;display:grid;place-items:center;padding:24px 16px}
+.login .box{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px;display:grid;gap:14px;box-shadow:var(--shadow)}
+.demo{display:grid;gap:6px}
+.demo button{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border:1px dashed var(--line);border-radius:6px;font-size:13px}
+.demo button:hover{border-color:var(--accent)}
+.demo button:focus-visible{outline:2px solid var(--accent)}
+
+/* modal & toast */
+.overlay{position:fixed;inset:0;background:rgba(10,20,17,.45);display:grid;place-items:center;padding:16px;z-index:20}
+.modal{background:var(--panel);border-radius:12px;max-width:620px;width:100%;max-height:90vh;overflow:auto;padding:20px;display:grid;gap:14px;box-shadow:var(--shadow)}
+.modal .actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;max-width:calc(100% - 32px)}
+.note{padding:10px 12px;border-radius:8px;font-size:14px}
+.note.warn{background:var(--warn-soft);color:var(--warn)} .note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.ok{background:var(--ok-soft);color:var(--ok)} .note.info{background:var(--info-soft);color:var(--info)}
+.search{position:relative;flex:1;min-width:200px;max-width:420px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{all:unset;cursor:pointer;padding:8px 12px;border-bottom:2px solid transparent;font-weight:500;color:var(--muted)}
+.tabs button.on{color:var(--accent);border-color:var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--accent)}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 16px;gap:10px}
+  .nav{display:flex;flex-wrap:wrap;gap:4px}
+  .me{margin:0;border:0;padding:0;display:flex;align-items:center}
+  .main{padding:16px 16px 60px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .bar{grid-template-columns:90px 1fr 80px}
+}
+@media (max-width:520px){ .form{grid-template-columns:1fr} .tl-item{grid-template-columns:1fr;gap:2px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div id="root"></div>
+
+<script>
+/* ============ Хранилище ============ */
+const KEY = 'crm_sales_v1', BKEY = 'crm_sales_backups_v1', SKEY = 'crm_sales_session_v1';
+const store = {
+  get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => new Date().toISOString();
+const daysAgo = (d, h=10) => { const t = new Date(); t.setDate(t.getDate()-d); t.setHours(h, Math.floor(Math.random()*60),0,0); return t.toISOString(); };
+const fmtDate = s => s ? new Date(s).toLocaleDateString('ru-RU') : '—';
+const fmtDT = s => s ? new Date(s).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+const money = n => (Math.round(n||0)).toLocaleString('ru-RU') + ' ₽';
+const pct = n => (isFinite(n) ? Math.round(n) : 0) + ' %';
+
+const ROLES = { admin:'Администратор', head:'Руководитель отдела', manager:'Менеджер' };
+const DEAL = { new:['Новая','info'], work:['В работе','warn'], offer:['КП отправлено','acc'], won:['Успешно','ok'], lost:['Отказ','bad'] };
+const ITYPE = { call:'Звонок', mail:'Письмо', meet:'Встреча', note:'Заметка', system:'Система' };
+
+/* ============ Нормализация и поиск дублей ============ */
+const normPhone = p => { let d = String(p||'').replace(/\D/g,''); if(d.length===11 && (d[0]==='8'||d[0]==='7')) d = d.slice(1); return d.length>=10 ? d.slice(-10) : ''; };
+const normEmail = e => String(e||'').trim().toLowerCase();
+const normName = n => (' '+String(n||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'.,\-()]/g,' ')+' ').replace(/\s(ооо|оао|зао|пао|ао|ип)(?=\s)/g,' ').replace(/\s+/g,' ').trim();
+const normInn = i => String(i||'').replace(/\D/g,'');
+function dupKeys(c){
+  const k = [];
+  if(normPhone(c.phone)) k.push('p:'+normPhone(c.phone));
+  if(normEmail(c.email)) k.push('e:'+normEmail(c.email));
+  if(normInn(c.inn).length>=10) k.push('i:'+normInn(c.inn));
+  if(normName(c.name).length>2) k.push('n:'+normName(c.name));
+  return k;
+}
+function findDuplicate(c, list, exceptId){
+  const keys = new Set(dupKeys(c));
+  return list.find(x => x.id!==exceptId && dupKeys(x).some(k => keys.has(k)));
+}
+function duplicateGroups(list){
+  const parent = {}; const f = x => parent[x]===x ? x : (parent[x]=f(parent[x]));
+  list.forEach(c => parent[c.id]=c.id);
+  const byKey = {};
+  list.forEach(c => dupKeys(c).forEach(k => { if(byKey[k]) parent[f(c.id)] = f(byKey[k]); else byKey[k]=c.id; }));
+  const g = {}; list.forEach(c => (g[f(c.id)] ||= []).push(c));
+  return Object.values(g).filter(x => x.length>1);
+}
+
+/* ============ Демо-данные ============ */
+function seed(){
+  const users = [
+    {id:'u_admin', login:'admin', pass:'admin', name:'Соколов Игорь', role:'admin', pilot:false, active:true},
+    {id:'u_head', login:'head', pass:'head', name:'Власова Марина', role:'head', pilot:false, active:true},
+    {id:'u_m1', login:'petrov', pass:'1234', name:'Петров Алексей', role:'manager', pilot:true, active:true},
+    {id:'u_m2', login:'ivanova', pass:'1234', name:'Иванова Ольга', role:'manager', pilot:true, active:true},
+    {id:'u_m3', login:'kuznetsov', pass:'1234', name:'Кузнецов Денис', role:'manager', pilot:true, active:true},
+    {id:'u_m4', login:'smirnova', pass:'1234', name:'Смирнова Анна', role:'manager', pilot:true, active:true},
+    {id:'u_m5', login:'orlov', pass:'1234', name:'Орлов Павел', role:'manager', pilot:true, active:true},
+    {id:'u_m6', login:'fedorova', pass:'1234', name:'Фёдорова Юлия', role:'manager', pilot:false, active:true},
+    {id:'u_m7', login:'morozov', pass:'1234', name:'Морозов Артём', role:'manager', pilot:false, active:true},
+  ];
+  const mgr = users.filter(u=>u.role==='manager').map(u=>u.id);
+  const raw = [
+    ['ООО «СтройМастер»','Гончаров Виктор','+7 (495) 123-45-67','info@stroymaster.ru','7701234567','Москва','Сайт'],
+    ['АО «ТехноПарк»','Лебедева Светлана','+7 (812) 555-12-34','zakaz@technopark.ru','7802345678','Санкт-Петербург','Выставка'],
+    ['ИП Захаров Н. С.','Захаров Николай','8 912 345-67-89','zaharov.ns@mail.ru','662312345678','Екатеринбург','Звонок'],
+    ['ООО «Северный ветер»','Андреева Ксения','+7 (8182) 20-30-40','office@sev-veter.ru','2901234567','Архангельск','Рекомендация'],
+    ['ООО «АгроСнаб»','Кириллов Олег','+7 (863) 244-11-22','agrosnab@yandex.ru','6161234567','Ростов-на-Дону','Сайт'],
+    ['ООО «МедЛайн»','Полякова Ирина','+7 (843) 212-00-01','buy@medline.ru','1655123456','Казань','Выставка'],
+    ['ООО «Логистик Плюс»','Тихонов Сергей','+7 (383) 310-20-30','t.sergey@logplus.ru','5406123456','Новосибирск','Звонок'],
+    ['ООО «ВекторСофт»','Егорова Дарья','+7 (495) 640-10-10','sales@vectorsoft.ru','7714123456','Москва','Сайт'],
+    ['ООО «Уральский металл»','Белов Константин','+7 (343) 371-71-71','snab@uralmet.ru','6671123456','Екатеринбург','Рекомендация'],
+    ['ООО «Кондитер»','Мельникова Татьяна','+7 (4862) 55-66-77','zakupki@konditer.ru','5752123456','Орёл','Сайт'],
+    ['АО «ЭнергоСервис»','Громов Андрей','+7 (846) 270-80-90','es@energoservis.ru','6315123456','Самара','Тендер'],
+    ['ООО «Фармация»','Данилова Елена','+7 (831) 433-22-11','info@pharmacia-nn.ru','5260123456','Нижний Новгород','Звонок'],
+    ['ООО «Автоцентр Юг»','Карпов Максим','+7 (861) 200-30-00','karpov@avtoug.ru','2310123456','Краснодар','Выставка'],
+    ['ООО «Печатный двор»','Зайцева Наталья','+7 (4852) 30-40-50','print@pdvor.ru','7604123456','Ярославль','Сайт'],
+    ['ООО «ГрандОтель»','Семёнов Роман','+7 (4212) 41-00-00','hotel@grand-hb.ru','2721123456','Хабаровск','Рекомендация'],
+    ['ИП Васильева А. П.','Васильева Алла','+7 (910) 777-88-99','vasileva.ap@gmail.com','772512345678','Москва','Звонок'],
+    ['ООО «ДомСтрой»','Никитин Глеб','+7 (4232) 22-33-44','domstroy@vl.ru','2540123456','Владивосток','Сайт'],
+    ['ООО «Чистый город»','Соловьёва Вера','+7 (3452) 50-60-70','clean@chgorod.ru','7203123456','Тюмень','Тендер'],
+    ['ООО «ИнфоТрейд»','Макаров Илья','+7 (495) 980-00-11','it@infotrade.ru','7729123456','Москва','Сайт'],
+    ['ООО «Сибирский лес»','Волков Тимур','+7 (3912) 65-43-21','les@sibles.ru','2465123456','Красноярск','Выставка'],
+    ['ООО «Молочный край»','Яковлева Мария','+7 (3812) 30-30-30','moloko@mkray.ru','5503123456','Омск','Рекомендация'],
+    ['ООО «ТрансКарго»','Алексеев Руслан','+7 (4722) 20-20-20','cargo@transcargo.ru','3123123456','Белгород','Звонок'],
+    ['ООО «Оптика Люкс»','Комарова Лилия','+7 (8412) 56-78-90','lux@optika58.ru','5836123456','Пенза','Сайт'],
+    ['ООО «Альфа-Климат»','Борисов Степан','+7 (4732) 39-00-39','klimat@alfa-k.ru','3664123456','Воронеж','Тендер'],
+    // дубли, попавшие из разных источников (Excel и почта)
+    ['Строймастер','Гончаров В.','8 (495) 123-45-67','','','Москва','Почта'],
+    ['ООО Медлайн','Полякова И.','','BUY@MEDLINE.RU','','Казань','Excel'],
+  ];
+  const clients = raw.map((r,i)=>({id:'c'+(i+1), name:r[0], contact:r[1], phone:r[2], email:r[3], inn:r[4], city:r[5], source:r[6],
+    owner: mgr[i % mgr.length], created: daysAgo(80 - i*2), updated: daysAgo(Math.max(0, 40 - i))}));
+  const titles = ['Поставка оборудования','Годовой сервисный договор','Пробная партия','Расширение лицензии','Комплексное обслуживание','Доп. соглашение','Поставка расходных материалов'];
+  const deals = []; const inter = [];
+  clients.slice(0,24).forEach((c,i)=>{
+    const n = 1 + (i%3);
+    for(let k=0;k<n;k++){
+      const age = 5 + ((i*7 + k*13) % 85);
+      const stList = ['won','won','lost','work','offer','new','won','work'];
+      const st = stList[(i+k)%stList.length];
+      const created = daysAgo(age, 9);
+      const hours = st==='won'||st==='lost' ? 6 + ((i*11+k*5)%40) : null;
+      deals.push({id:uid(), clientId:c.id, owner:c.owner, title:titles[(i+k)%titles.length],
+        amount: 40000 + ((i*37+k*53)%30)*15000, status:st, created,
+        closed: hours ? new Date(new Date(created).getTime()+hours*3600e3).toISOString() : null});
+    }
+    inter.push({id:uid(), clientId:c.id, userId:c.owner, type:'call', text:'Первичный звонок, выяснили потребность.', date:daysAgo(60 - i)});
+    inter.push({id:uid(), clientId:c.id, userId:c.owner, type:'mail', text:'Отправлено коммерческое предложение и прайс-лист.', date:daysAgo(40 - i)});
+    if(i%2===0) inter.push({id:uid(), clientId:c.id, userId:c.owner, type:'meet', text:'Встреча в офисе клиента, обсудили условия оплаты.', date:daysAgo(20 - (i%15))});
+  });
+  const plan = [
+    ['Анализ текущего учёта клиентов','Какие данные, где хранятся, какие проблемы','done'],
+    ['Формирование требований','Функции, права доступа, отчёты','done'],
+    ['Подготовка инфраструктуры','Сервер или облако, учётные записи','done'],
+    ['Установка и настройка CRM','Справочники, роли, поля карточки','done'],
+    ['Перенос клиентской базы','Резервная копия исходных данных, импорт, сверка','work'],
+    ['Тестирование','Функциональное и пользовательское','todo'],
+    ['Обучение пилотной группы','5 менеджеров','todo'],
+    ['Пилотная эксплуатация','2–4 недели, сбор обратной связи','todo'],
+    ['Полный запуск','Устранение замечаний, обучение остальных, запуск на весь отдел','todo'],
+  ].map((p,i)=>({id:'s'+(i+1), title:p[0], hint:p[1], status:p[2]}));
+  const risks = [
+    ['Потеря или повреждение данных при переносе','Средняя','Резервная копия перед импортом, сверка количества записей','control'],
+    ['Сопротивление сотрудников новой системе','Высокая','Вовлечение менеджеров, демонстрация выгод, поддержка руководителя','open'],
+    ['Недостаточное обучение → ошибки пользователей','Средняя','Практические занятия, инструкции, консультант на первые недели','open'],
+    ['Несовместимость с почтой и телефонией','Низкая','Проверка интеграций на этапе тестирования','control'],
+    ['Срыв сроков из-за нехватки ресурсов','Средняя','Резерв времени в плане, еженедельный контроль','open'],
+  ].map((r,i)=>({id:'r'+(i+1), title:r[0], prob:r[1], measure:r[2], status:r[3]}));
+  const feedback = [
+    {id:uid(), userId:'u_m1', date:daysAgo(3), kind:'idea', rating:4, text:'Удобно видеть всю историю по клиенту. Хотелось бы напоминания о звонках.', resolved:false},
+    {id:uid(), userId:'u_m2', date:daysAgo(2), kind:'bug', rating:3, text:'При импорте из Excel не распознался столбец «Тел. моб.».', resolved:true},
+    {id:uid(), userId:'u_m4', date:daysAgo(1), kind:'praise', rating:5, text:'Поиск клиента занимает секунды, раньше искала в почте по 2–3 минуты.', resolved:false},
+  ];
+  const searches = [14,9,22,11,7,18,12,8,15,10,6,13].map(s=>({sec:s, date:daysAgo(s%10)}));
+  return {
+    version:1, users, clients, deals, interactions:inter, plan, risks, feedback, imports:[],
+    metrics:{searches}, settings:{baselineSearchSec:120, baselineDealHours:48, company:'ООО «Пример»'},
+    log:[{id:uid(), date:today(), user:'Система', action:'Созданы демонстрационные данные'}]
+  };
+}
+
+let S = store.get(KEY);
+if(!S){ S = seed(); store.set(KEY,S); }
+let backups = store.get(BKEY) || [];
+let me = (()=>{ const id = store.get(SKEY); return S.users.find(u=>u.id===id && u.active) || null; })();
+let view = 'clients', sub = null, openClient = null, searchStarted = null, query = '', filterOwner = 'all';
+
+function save(){ if(!store.set(KEY,S)) toast('Не удалось сохранить: хранилище браузера недоступно'); }
+function log(action){ S.log.unshift({id:uid(), date:today(), user: me ? me.name : 'Система', action}); S.log = S.log.slice(0,500); }
+const userName = id => (S.users.find(u=>u.id===id)||{}).name || '—';
+const can = {
+  seeAll: () => me.role!=='manager',
+  editClient: c => me.role!=='manager' || c.owner===me.id,
+  admin: () => me.role==='admin',
+  reports: () => me.role!=='manager',
+  import: () => me.role!=='manager',
+  plan: () => me.role!=='manager',
+};
+const visibleClients = () => can.seeAll() ? S.clients : S.clients.filter(c=>c.owner===me.id);
+const visibleDeals = () => can.seeAll() ? S.deals : S.deals.filter(d=>d.owner===me.id);
+
+/* ============ Резервные копии ============ */
+function makeBackup(label){
+  const b = {id:uid(), date:today(), label, by: me?me.name:'Система', data: JSON.parse(JSON.stringify(S)),
+    counts:{clients:S.clients.length, deals:S.deals.length, interactions:S.interactions.length}};
+  backups.unshift(b); backups = backups.slice(0,15);
+  if(!store.set(BKEY, backups)) toast('Копия создана только до закрытия страницы: хранилище браузера недоступно');
+  return b;
+}
+function restoreBackup(id){
+  const b = backups.find(x=>x.id===id); if(!b) return;
+  makeBackup('Автокопия перед восстановлением');
+  const keepUser = me && me.id;
+  S = JSON.parse(JSON.stringify(b.data));
+  log('Восстановление из резервной копии от ' + fmtDT(b.date) + ' («' + b.label + '»)');
+  save();
+  me = S.users.find(u=>u.id===keepUser) || null;
+  toast('Данные восстановлены из копии от ' + fmtDT(b.date));
+}
+
+/* ============ Файлы ============ */
+function download(name, content, type){
+  try{
+    const blob = content instanceof Blob ? content : new Blob([content], {type});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  }catch(e){ toast('Браузер не разрешил скачивание'); }
+}
+function exportExcel(){
+  const rows = visibleClients().map(c=>({'Компания':c.name,'Контактное лицо':c.contact,'Телефон':c.phone,'Email':c.email,'ИНН':c.inn,'Город':c.city,'Источник':c.source,'Менеджер':userName(c.owner),'Создан':fmtDate(c.created)}));
+  const deals = visibleDeals().map(d=>({'Клиент':(S.clients.find(c=>c.id===d.clientId)||{}).name,'Заявка':d.title,'Сумма':d.amount,'Статус':DEAL[d.status][0],'Менеджер':userName(d.owner),'Создана':fmtDate(d.created),'Закрыта':fmtDate(d.closed)}));
+  if(window.XLSX){
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Клиенты');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deals), 'Заявки');
+    const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    download('crm_klienty_'+new Date().toISOString().slice(0,10)+'.xlsx', new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  } else {
+    const h = Object.keys(rows[0]||{}); const csv = '﻿'+[h.join(';'), ...rows.map(r=>h.map(k=>'"'+String(r[k]??'').replace(/"/g,'""')+'"').join(';'))].join('\n');
+    download('crm_klienty.csv', csv, 'text/csv;charset=utf-8');
+  }
+  log('Выгрузка клиентской базы в Excel ('+rows.length+' записей)'); save();
+}
+function parseCSV(text){
+  const sep = (text.split('\n')[0].match(/;/g)||[]).length >= (text.split('\n')[0].match(/,/g)||[]).length ? ';' : ',';
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===sep){ row.push(cell); cell=''; }
+    else if(ch==='\n'){ row.push(cell.replace(/\r$/,'')); rows.push(row); row=[]; cell=''; }
+    else cell+=ch;
+  }
+  if(cell||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* ============ UI helpers ============ */
+const $ = s => document.querySelector(s);
+let toastT;
+function toast(msg){ let t = $('.toast'); if(!t){ t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); document.body.appendChild(t);} t.textContent=msg; clearTimeout(toastT); toastT=setTimeout(()=>t.remove(),3500); }
+function modal(html, onMount){
+  const o = document.createElement('div'); o.className='overlay';
+  o.innerHTML = '<div class="modal" role="dialog" aria-modal="true">'+html+'</div>';
+  o.addEventListener('click', e=>{ if(e.target===o || e.target.closest('[data-close]')) o.remove(); });
+  document.body.appendChild(o); onMount && onMount(o.querySelector('.modal'), ()=>o.remove());
+  const f = o.querySelector('input,select,textarea,button.primary'); f && f.focus();
+}
+function confirmBox(title, text, okLabel, cb, danger){
+  modal(`<h2>${esc(title)}</h2><p>${text}</p><div class="actions"><button class="btn" data-close>Отмена</button><button class="btn ${danger?'danger':'primary'}" id="okbtn">${esc(okLabel)}</button></div>`,
+    (m,close)=>{ m.querySelector('#okbtn').onclick = ()=>{ close(); cb(); }; });
+}
+const pill = (t,c) => `<span class="pill ${c||''}">${esc(t)}</span>`;
+const dealPill = s => pill(DEAL[s][0], DEAL[s][1]);
+
+/* ============ Рендер ============ */
+function render(){
+  const root = $('#root');
+  if(!me){ root.innerHTML = loginView(); bindLogin(); return; }
+  const nav = [
+    ['clients','Клиенты', visibleClients().length],
+    ['deals','Заявки', visibleDeals().filter(d=>!['won','lost'].includes(d.status)).length],
+    can.reports() && ['reports','Отчёты'],
+    ['impl','Внедрение'],
+    can.import() && ['migrate','Перенос данных'],
+    can.admin() && ['admin','Администрирование'],
+  ].filter(Boolean);
+  root.innerHTML = `<div class="app">
+    <aside class="side">
+      <div class="brand"><b>CRM · Продажи</b><span>${esc(S.settings.company)}</span></div>
+      <nav class="nav">${nav.map(n=>`<button data-view="${n[0]}" class="${view===n[0]?'on':''}">${n[1]}${n[2]!=null?`<span class="small muted num">${n[2]}</span>`:''}</button>`).join('')}</nav>
+      <div class="me"><div><b>${esc(me.name)}</b><br><span class="muted">${ROLES[me.role]}${me.pilot?' · пилотная группа':''}</span></div>
+        <button class="btn small" id="logout">Выйти</button></div>
+    </aside>
+    <main class="main" id="main">${mainView()}</main></div>`;
+  root.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{ view=b.dataset.view; sub=null; openClient=null; render(); });
+  $('#logout').onclick = ()=>{ log('Выход из системы'); save(); me=null; store.del(SKEY); query=''; filterOwner='all'; searchStarted=null; importState=null; openClient=null; sub=null; render(); };
+  bindMain();
+}
+function mainView(){
+  if(view==='clients') return openClient ? clientCard() : clientsView();
+  if(view==='deals') return dealsView();
+  if(view==='reports' && can.reports()) return reportsView();
+  if(view==='impl') return implView();
+  if(view==='migrate' && can.import()) return migrateView();
+  if(view==='admin' && can.admin()) return adminView();
+  view='clients'; return clientsView();
+}
+
+/* ---------- Вход ---------- */
+function loginView(){
+  const demo = [['admin','admin','Администратор'],['head','head','Руководитель отдела'],['petrov','1234','Менеджер (пилот)'],['fedorova','1234','Менеджер']];
+  return `<div class="login"><form class="box" id="loginForm">
+    <div><h1>CRM · Отдел продаж</h1><p class="muted small" style="margin:4px 0 0">Единая база клиентов, заявок и истории работы</p></div>
+    <label>Логин<input id="lg" autocomplete="username" required></label>
+    <label>Пароль<input id="pw" type="password" autocomplete="current-password" required></label>
+    <div id="lerr" class="note bad" hidden></div>
+    <button class="btn primary" type="submit" style="justify-content:center">Войти</button>
+    <div class="demo"><span class="small muted">Демо-учётные записи (нажмите, чтобы подставить):</span>
+      ${demo.map(d=>`<button type="button" data-l="${d[0]}" data-p="${d[1]}"><span class="mono">${d[0]} / ${d[1]}</span><span class="muted">${d[2]}</span></button>`).join('')}
+    </div></form></div>`;
+}
+function bindLogin(){
+  document.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>{ $('#lg').value=b.dataset.l; $('#pw').value=b.dataset.p; });
+  $('#loginForm').onsubmit = e=>{
+    e.preventDefault();
+    const u = S.users.find(x=>x.login===$('#lg').value.trim() && x.pass===$('#pw').value);
+    if(!u){ const el=$('#lerr'); el.hidden=false; el.textContent='Неверный логин или пароль. Проверьте раскладку клавиатуры.'; return; }
+    if(!u.active){ const el=$('#lerr'); el.hidden=false; el.textContent='Учётная запись заблокирована. Обратитесь к системному администратору.'; return; }
+    me=u; store.set(SKEY,u.id); view='clients'; log('Вход в систему'); save(); render();
+  };
+}
+
+/* ---------- Клиенты ---------- */
+function clientsView(){
+  let list = visibleClients();
+  if(can.seeAll() && filterOwner!=='all') list = list.filter(c=>c.owner===filterOwner);
+  const q = query.trim().toLowerCase();
+  if(q){ const qp = q.replace(/\D/g,''); list = list.filter(c => [c.name,c.contact,c.email,c.city,c.inn].some(v=>String(v||'').toLowerCase().includes(q)) || (qp.length>=3 && normPhone(c.phone).includes(qp.replace(/^[78](?=\d{10})/,'')))); }
+  list = [...list].sort((a,b)=>b.updated.localeCompare(a.updated));
+  const dups = duplicateGroups(visibleClients()).length;
+  const managers = S.users.filter(u=>u.role==='manager');
+  return `<div class="topline"><h1>Клиенты</h1><div class="row">
+      <button class="btn" id="expXls">Выгрузить в Excel</button>
+      <button class="btn primary" id="newClient">Новый клиент</button></div></div>
+    ${dups && can.seeAll() ? `<div class="note warn">Найдено возможных дублей: ${dups}. <a href="#" id="goDups" style="color:inherit;font-weight:600">Проверить и объединить</a></div>`:''}
+    <div class="row">
+      <div class="search"><input id="q" type="search" placeholder="Поиск: компания, контакт, телефон, email, ИНН" value="${esc(query)}" aria-label="Поиск клиента"></div>
+      ${can.seeAll()?`<select id="fo" style="width:auto" aria-label="Менеджер"><option value="all">Все менеджеры</option>${managers.map(m=>`<option value="${m.id}" ${filterOwner===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</select>`:''}
+      <span class="small muted">Найдено: ${list.length}</span>
+    </div>
+    <div class="panel tw" style="padding:0">${list.length?`<table><thead><tr><th>Компания</th><th>Контакт</th><th>Телефон</th><th>Город</th><th>Менеджер</th><th class="r">Открытые заявки</th></tr></thead><tbody>
+      ${list.map(c=>{ const open = S.deals.filter(d=>d.clientId===c.id && !['won','lost'].includes(d.status)).length;
+        return `<tr class="click" data-client="${c.id}" tabindex="0"><td><b>${esc(c.name)}</b><div class="small muted">${esc(c.email||'')}</div></td><td>${esc(c.contact||'—')}</td><td class="num">${esc(c.phone||'—')}</td><td>${esc(c.city||'—')}</td><td>${esc(userName(c.owner))}</td><td class="r">${open||'—'}</td></tr>`;}).join('')}
+      </tbody></table>`:`<div class="empty">${q?'По запросу «'+esc(query)+'» ничего не найдено':'Клиентов пока нет'}</div>`}</div>`;
+}
+function clientForm(c){
+  const managers = S.users.filter(u=>u.role==='manager' && u.active);
+  return `<form class="form" id="cf">
+    <label class="full">Компания или ФИО *<input id="f_name" required value="${esc(c.name||'')}"></label>
+    <label>Контактное лицо<input id="f_contact" value="${esc(c.contact||'')}"></label>
+    <label>Телефон<input id="f_phone" value="${esc(c.phone||'')}" inputmode="tel"></label>
+    <label>Email<input id="f_email" type="email" value="${esc(c.email||'')}"></label>
+    <label>ИНН<input id="f_inn" value="${esc(c.inn||'')}" inputmode="numeric"></label>
+    <label>Город<input id="f_city" value="${esc(c.city||'')}"></label>
+    <label>Источник<select id="f_source">${['Сайт','Звонок','Выставка','Рекомендация','Тендер','Почта','Excel'].map(s=>`<option ${c.source===s?'selected':''}>${s}</option>`).join('')}</select></label>
+    ${can.seeAll()?`<label class="full">Ответственный менеджер<select id="f_owner">${managers.map(m=>`<option value="${m.id}" ${c.owner===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</select></label>`:''}
+    <div id="dupWarn" class="full"></div>
+  </form>`;
+}
+function readClientForm(m){
+  const v = id => m.querySelector('#'+id)?.value.trim() || '';
+  return {name:v('f_name'), contact:v('f_contact'), phone:v('f_phone'), email:v('f_email'), inn:v('f_inn'), city:v('f_city'), source:v('f_source'), owner: m.querySelector('#f_owner') ? v('f_owner') : me.id};
+}
+function editClientModal(c){
+  const isNew = !c;
+  c = c || {owner: me.role==='manager'?me.id:S.users.find(u=>u.role==='manager').id, source:'Звонок'};
+  modal(`<h2>${isNew?'Новый клиент':'Редактирование клиента'}</h2>${clientForm(c)}
+    <div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="saveC">Сохранить</button></div>`, (m,close)=>{
+    let forced = false;
+    const check = ()=>{ const d = findDuplicate(readClientForm(m), S.clients, c.id);
+      m.querySelector('#dupWarn').innerHTML = d ? `<div class="note warn">Похоже на существующего клиента: <b>${esc(d.name)}</b> (${esc(d.phone||d.email||d.inn)}), менеджер ${esc(userName(d.owner))}. Проверьте, чтобы не создать дубль.</div>` : ''; return d; };
+    m.querySelectorAll('input').forEach(i=>i.addEventListener('change',check));
+    m.querySelector('#saveC').onclick = ()=>{
+      const data = readClientForm(m);
+      if(!data.name){ m.querySelector('#f_name').focus(); toast('Укажите название компании или ФИО'); return; }
+      if(data.email && !/^\S+@\S+\.\S+$/.test(data.email)){ toast('Email указан с ошибкой'); return; }
+      const d = check();
+      if(d && !forced){ forced = true; m.querySelector('#saveC').textContent='Всё равно сохранить'; return; }
+      if(isNew){ const nc = {id:uid(), ...data, created:today(), updated:today()}; S.clients.push(nc);
+        S.interactions.push({id:uid(), clientId:nc.id, userId:me.id, type:'system', text:'Клиент добавлен в CRM', date:today()});
+        log('Создан клиент «'+nc.name+'»'); openClient = nc.id; }
+      else { const was = c.owner; Object.assign(c, data, {updated:today()});
+        if(was!==c.owner) S.interactions.push({id:uid(), clientId:c.id, userId:me.id, type:'system', text:'Ответственный изменён: '+userName(was)+' → '+userName(c.owner), date:today()});
+        log('Изменён клиент «'+c.name+'»'); }
+      save(); close(); render(); toast(isNew?'Клиент добавлен':'Изменения сохранены');
+    };
+  });
+}
+function clientCard(){
+  const c = S.clients.find(x=>x.id===openClient);
+  if(!c || (!can.seeAll() && c.owner!==me.id)){ openClient=null; return clientsView(); }
+  const deals = S.deals.filter(d=>d.clientId===c.id).sort((a,b)=>b.created.localeCompare(a.created));
+  const hist = S.interactions.filter(i=>i.clientId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const won = deals.filter(d=>d.status==='won').reduce((s,d)=>s+d.amount,0);
+  const ed = can.editClient(c);
+  return `<div class="topline"><div><button class="btn small" id="back">← К списку</button></div>
+      <div class="row">${ed?`<button class="btn" id="editC">Редактировать</button>`:''}${can.admin()?`<button class="btn danger" id="delC">Удалить</button>`:''}</div></div>
+    <div><h1>${esc(c.name)}</h1><div class="muted small">Менеджер: ${esc(userName(c.owner))} · в базе с ${fmtDate(c.created)} · источник: ${esc(c.source||'—')}</div></div>
+    <div class="kpis">
+      <div class="kpi"><small>Заявок</small><b>${deals.length}</b></div>
+      <div class="kpi"><small>Открытых</small><b>${deals.filter(d=>!['won','lost'].includes(d.status)).length}</b></div>
+      <div class="kpi"><small>Продажи</small><b>${money(won)}</b></div>
+      <div class="kpi"><small>Касаний</small><b>${hist.length}</b></div>
+    </div>
+    <div class="grid2">
+      <div style="display:grid;gap:18px;align-content:start">
+        <div class="panel"><h3>Контакты</h3>
+          <table class="small"><tbody>
+          ${[['Контактное лицо',c.contact],['Телефон',c.phone],['Email',c.email],['ИНН',c.inn],['Город',c.city]].map(r=>`<tr><td class="muted" style="width:40%">${r[0]}</td><td>${esc(r[1]||'—')}</td></tr>`).join('')}
+          </tbody></table></div>
+        <div class="panel"><div class="topline" style="margin-bottom:10px"><h3>Заявки</h3>${ed?`<button class="btn small primary" id="newDeal">Новая заявка</button>`:''}</div>
+          ${deals.length?`<div class="tw"><table class="small"><thead><tr><th>Заявка</th><th class="r">Сумма</th><th>Статус</th></tr></thead><tbody>
+          ${deals.map(d=>`<tr><td>${esc(d.title)}<div class="muted">${fmtDate(d.created)}${d.closed?' → '+fmtDate(d.closed):''}</div></td><td class="r">${money(d.amount)}</td>
+            <td>${ed?`<select data-deal="${d.id}" aria-label="Статус заявки" style="width:auto;padding:4px 6px">${Object.entries(DEAL).map(([k,v])=>`<option value="${k}" ${d.status===k?'selected':''}>${v[0]}</option>`).join('')}</select>`:dealPill(d.status)}</td></tr>`).join('')}
+          </tbody></table></div>`:'<div class="muted small">Заявок пока нет</div>'}</div>
+      </div>
+      <div class="panel"><h3>История взаимодействия</h3>
+        ${ed?`<form id="if" style="display:grid;gap:8px;margin-bottom:12px"><div class="row"><select id="itype" style="width:auto" aria-label="Тип">${['call','mail','meet','note'].map(t=>`<option value="${t}">${ITYPE[t]}</option>`).join('')}</select></div>
+          <textarea id="itext" placeholder="Что обсудили, о чём договорились, следующий шаг" required></textarea>
+          <div><button class="btn primary small" type="submit">Добавить запись</button></div></form>`:''}
+        <div class="tl">${hist.map(i=>`<div class="tl-item"><div class="tl-date">${fmtDT(i.date)}</div><div>${pill(ITYPE[i.type], i.type==='system'?'':'acc')} <span class="small muted">${esc(userName(i.userId))}</span><div>${esc(i.text)}</div></div></div>`).join('')||'<div class="muted small">Записей нет</div>'}</div>
+      </div>
+    </div>`;
+}
+function newDealModal(clientId){
+  modal(`<h2>Новая заявка</h2><form class="form" id="df">
+    <label class="full">Название *<input id="d_title" required placeholder="Например, поставка оборудования"></label>
+    <label>Сумма, ₽<input id="d_amount" type="number" min="0" step="1000" value="100000"></label>
+    <label>Статус<select id="d_status">${Object.entries(DEAL).filter(([k])=>k!=='won'&&k!=='lost').map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}</select></label>
+  </form><div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="saveD">Создать</button></div>`, (m,close)=>{
+    m.querySelector('#saveD').onclick=()=>{
+      const t = m.querySelector('#d_title').value.trim(); if(!t){ toast('Укажите название заявки'); return; }
+      const c = S.clients.find(x=>x.id===clientId);
+      const d = {id:uid(), clientId, owner:c.owner, title:t, amount:+m.querySelector('#d_amount').value||0, status:m.querySelector('#d_status').value, created:today(), closed:null};
+      S.deals.push(d); S.interactions.push({id:uid(), clientId, userId:me.id, type:'system', text:'Создана заявка «'+t+'» на '+money(d.amount), date:today()});
+      c.updated=today(); log('Создана заявка «'+t+'» ('+c.name+')'); save(); close(); render(); toast('Заявка создана');
+    };
+  });
+}
+function setDealStatus(id, st){
+  const d = S.deals.find(x=>x.id===id); if(!d) return;
+  const old = d.status; d.status = st;
+  d.closed = (st==='won'||st==='lost') ? (d.closed || today()) : null;
+  S.interactions.push({id:uid(), clientId:d.clientId, userId:me.id, type:'system', text:'Заявка «'+d.title+'»: '+DEAL[old][0]+' → '+DEAL[st][0], date:today()});
+  const c = S.clients.find(x=>x.id===d.clientId); if(c) c.updated=today();
+  log('Статус заявки «'+d.title+'» изменён на «'+DEAL[st][0]+'»'); save(); render();
+}
+
+/* ---------- Заявки ---------- */
+function dealsView(){
+  const st = sub || 'open';
+  let list = visibleDeals();
+  if(st==='open') list = list.filter(d=>!['won','lost'].includes(d.status)); else if(st!=='all') list = list.filter(d=>d.status===st);
+  list = [...list].sort((a,b)=>b.created.localeCompare(a.created));
+  const tabs = [['open','Открытые'],['won','Успешные'],['lost','Отказы'],['all','Все']];
+  return `<div class="topline"><h1>Заявки</h1><span class="muted small">Сумма в выборке: <b class="num">${money(list.reduce((s,d)=>s+d.amount,0))}</b></span></div>
+    <div class="tabs">${tabs.map(t=>`<button data-sub="${t[0]}" class="${st===t[0]?'on':''}">${t[1]}</button>`).join('')}</div>
+    <div class="panel tw" style="padding:0">${list.length?`<table><thead><tr><th>Клиент</th><th>Заявка</th><th class="r">Сумма</th><th>Статус</th><th>Менеджер</th><th>Создана</th><th class="r">Срок обработки</th></tr></thead><tbody>
+    ${list.map(d=>{ const c=S.clients.find(x=>x.id===d.clientId)||{}; const h = ((d.closed?new Date(d.closed):new Date()) - new Date(d.created))/3600e3;
+      const late = !d.closed && h > S.settings.baselineDealHours;
+      return `<tr class="click" data-client="${c.id}" tabindex="0"><td><b>${esc(c.name)}</b></td><td>${esc(d.title)}</td><td class="r">${money(d.amount)}</td><td>${dealPill(d.status)}</td><td>${esc(userName(d.owner))}</td><td class="num">${fmtDate(d.created)}</td>
+      <td class="r">${d.closed? Math.round(h)+' ч' : `<span class="${late?'pill bad':'muted'}">${h<48?Math.round(h)+' ч':Math.round(h/24)+' дн.'}${late?' — просрочена':''}</span>`}</td></tr>`;}).join('')}
+    </tbody></table>`:'<div class="empty">Заявок нет</div>'}</div>`;
+}
+
+/* ---------- Метрики ---------- */
+function metrics(){
+  const closed = S.deals.filter(d=>d.closed);
+  const avgDealH = closed.length ? closed.reduce((s,d)=>s+(new Date(d.closed)-new Date(d.created))/3600e3,0)/closed.length : 0;
+  const srch = S.metrics.searches.slice(-50);
+  const avgSearch = srch.length ? srch.reduce((s,x)=>s+x.sec,0)/srch.length : 0;
+  const lastImp = S.imports[0];
+  const migrated = lastImp ? (lastImp.created+lastImp.merged)/Math.max(1,lastImp.total-lastImp.empty)*100 : null;
+  const pilot = S.users.filter(u=>u.role==='manager'&&u.pilot);
+  const monthAgo = Date.now()-30*864e5;
+  const activeRecent = uid => S.interactions.some(i=>i.userId===uid && i.type!=='system' && new Date(i.date).getTime()>monthAgo) || S.log.some(l=>l.user===userName(uid) && new Date(l.date).getTime()>monthAgo);
+  const pilotActive = pilot.filter(u=>activeRecent(u.id)).length;
+  return {avgDealH, avgSearch, searchCnt:srch.length, migrated, lastImp, dups:duplicateGroups(S.clients).length,
+    searchGain: avgSearch ? (1-avgSearch/S.settings.baselineSearchSec)*100 : 0,
+    dealGain: avgDealH ? (1-avgDealH/S.settings.baselineDealHours)*100 : 0,
+    pilot: pilot.length, pilotActive};
+}
+function criteriaList(){
+  const m = metrics();
+  const st = (ok, warnCond) => ok ? 'ok' : (warnCond ? 'warn' : 'bad');
+  return [
+    ['100 % клиентской базы перенесено без потерь', m.migrated==null ? 'Импорт ещё не выполнялся' : 'Последний импорт: '+pct(m.migrated)+' строк перенесено', m.migrated==null?'warn':st(m.migrated>=100, m.migrated>=95)],
+    ['Все менеджеры пилотной группы работают в CRM', m.pilotActive+' из '+m.pilot+' активны за последние 30 дней', st(m.pilotActive===m.pilot, m.pilotActive>=m.pilot*0.7)],
+    ['Время поиска информации о клиенте сократилось на 50 % и более', 'Сейчас '+m.avgSearch.toFixed(1)+' с против '+S.settings.baselineSearchSec+' с до внедрения (−'+pct(m.searchGain)+')', st(m.searchGain>=50, m.searchGain>=30)],
+    ['Время обработки заявки сократилось на 30 % и более', 'Сейчас '+m.avgDealH.toFixed(1)+' ч против '+S.settings.baselineDealHours+' ч до внедрения (−'+pct(m.dealGain)+')', st(m.dealGain>=30, m.dealGain>=15)],
+    ['Снизилось дублирование данных', m.dups ? 'Осталось групп дублей: '+m.dups : 'Дублей в базе нет', st(m.dups===0, m.dups<=3)],
+    ['Руководитель получает отчёты из системы', 'Раздел «Отчёты» формируется автоматически по актуальным данным', 'ok'],
+  ];
+}
+const critHtml = () => criteriaList().map(c=>`<div class="crit"><span class="dot ${c[2]}" aria-hidden="true"></span><div><b>${esc(c[0])}</b><div class="small muted">${esc(c[1])}</div></div>${pill(c[2]==='ok'?'Выполнено':c[2]==='warn'?'Близко':'Не выполнено', c[2])}</div>`).join('');
+
+/* ---------- Отчёты ---------- */
+function reportsView(){
+  const now = new Date(); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const won = S.deals.filter(d=>d.status==='won'); const lost = S.deals.filter(d=>d.status==='lost');
+  const open = S.deals.filter(d=>!['won','lost'].includes(d.status));
+  const wonMonth = won.filter(d=>new Date(d.closed)>=monthStart).reduce((s,d)=>s+d.amount,0);
+  const conv = won.length+lost.length ? won.length/(won.length+lost.length)*100 : 0;
+  const m = metrics();
+  const funnel = Object.keys(DEAL).map(k=>[k, S.deals.filter(d=>d.status===k)]);
+  const maxF = Math.max(1,...funnel.map(f=>f[1].length));
+  const months = []; for(let i=5;i>=0;i--){ const d = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(d); }
+  const mSum = months.map(ms=>{ const me2 = new Date(ms.getFullYear(), ms.getMonth()+1, 1); return won.filter(d=>{const t=new Date(d.closed); return t>=ms && t<me2;}).reduce((s,d)=>s+d.amount,0); });
+  const maxM = Math.max(1,...mSum);
+  const managers = S.users.filter(u=>u.role==='manager');
+  const byM = managers.map(u=>{ const ds = S.deals.filter(d=>d.owner===u.id); const w = ds.filter(d=>d.status==='won'); const cl = ds.filter(d=>d.closed);
+    return {u, clients:S.clients.filter(c=>c.owner===u.id).length, open:ds.filter(d=>!d.closed).length, won:w.reduce((s,d)=>s+d.amount,0),
+      conv: cl.length? w.length/cl.length*100 : 0, h: cl.length ? cl.reduce((s,d)=>s+(new Date(d.closed)-new Date(d.created))/3600e3,0)/cl.length : 0}; }).sort((a,b)=>b.won-a.won);
+  return `<div class="topline"><h1>Отчёты для руководителя</h1><span class="small muted">Данные на ${fmtDT(today())}</span></div>
+    <div class="kpis">
+      <div class="kpi"><small>Продажи за месяц</small><b>${money(wonMonth)}</b></div>
+      <div class="kpi"><small>В работе</small><b>${money(open.reduce((s,d)=>s+d.amount,0))}</b><em>${open.length} заявок</em></div>
+      <div class="kpi"><small>Конверсия</small><b>${pct(conv)}</b><em>успешные / закрытые</em></div>
+      <div class="kpi"><small>Обработка заявки</small><b>${m.avgDealH.toFixed(1)} ч</b><em>было ${S.settings.baselineDealHours} ч</em></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Воронка заявок</h3><div class="bars">${funnel.map(([k,ds])=>`<div class="bar"><span>${DEAL[k][0]}</span><div class="track"><div class="fill" style="width:${ds.length/maxF*100}%"></div></div><span class="num r small">${ds.length} · ${money(ds.reduce((s,d)=>s+d.amount,0))}</span></div>`).join('')}</div></div>
+      <div class="panel"><h3>Успешные продажи по месяцам</h3>
+        <div class="cols">${mSum.map(v=>`<div class="col"><span class="num">${v?Math.round(v/1000)+'k':''}</span><i style="height:${v/maxM*100}%"></i></div>`).join('')}</div>
+        <div class="col-l">${months.map(d=>`<span>${d.toLocaleDateString('ru-RU',{month:'short'})}</span>`).join('')}</div></div>
+    </div>
+    <div class="panel tw"><h3>Результаты менеджеров</h3><table><thead><tr><th>Менеджер</th><th class="r">Клиентов</th><th class="r">Открыто</th><th class="r">Продажи</th><th class="r">Конверсия</th><th class="r">Ср. обработка</th></tr></thead><tbody>
+      ${byM.map(r=>`<tr><td>${esc(r.u.name)} ${r.u.pilot?pill('пилот','acc'):''}</td><td class="r">${r.clients}</td><td class="r">${r.open}</td><td class="r">${money(r.won)}</td><td class="r">${pct(r.conv)}</td><td class="r">${r.h?r.h.toFixed(1)+' ч':'—'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="panel"><h3>Критерии успешности внедрения</h3>${critHtml()}</div>
+    <div class="row"><button class="btn" id="expXls">Выгрузить базу и заявки в Excel</button></div>`;
+}
+
+/* ---------- Внедрение ---------- */
+function implView(){
+  const t = sub || 'plan';
+  const tabs = [['plan','План внедрения'],['crit','Критерии успеха'],['risks','Риски'],['fb','Обратная связь'],['rollback','Аварийный откат']];
+  let body = '';
+  const done = S.plan.filter(p=>p.status==='done').length;
+  if(t==='plan') body = `<div class="panel"><div class="topline" style="margin-bottom:8px"><h3>9 этапов внедрения</h3><span class="small muted">Выполнено ${done} из ${S.plan.length}</span></div>
+    <div class="stages">${S.plan.map((p,i)=>`<div class="stage ${p.status}"><span class="n">${i+1}</span><div><b>${esc(p.title)}</b><div class="small muted">${esc(p.hint)}</div></div>
+      ${can.plan()?`<select data-stage="${p.id}" aria-label="Статус этапа">${[['todo','Не начат'],['work','В работе'],['done','Выполнен']].map(o=>`<option value="${o[0]}" ${p.status===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:pill(p.status==='done'?'Выполнен':p.status==='work'?'В работе':'Не начат', p.status==='done'?'ok':p.status==='work'?'warn':'')}</div>`).join('')}</div></div>
+    <div class="panel"><h3>Пилотная группа</h3><div class="row">${S.users.filter(u=>u.pilot).map(u=>pill(u.name,'acc')).join('')}</div>
+      <p class="small muted" style="margin:10px 0 0">Стратегия: пилотная + поэтапная. Сначала система работает у пилотной группы 2–4 недели, затем по итогам обратной связи подключается весь отдел. Состав группы меняет администратор в разделе «Администрирование».</p></div>`;
+  if(t==='crit') body = `<div class="panel"><h3>Критерии успешности (считаются автоматически)</h3>${critHtml()}</div>
+    ${can.plan()?`<div class="panel"><h3>Показатели до внедрения</h3><p class="small muted" style="margin:0 0 10px">Замеры старого способа работы (Excel и почта), с которыми сравниваются текущие показатели.</p>
+      <div class="form"><label>Поиск информации о клиенте, секунд<input type="number" id="bSearch" min="1" value="${S.settings.baselineSearchSec}"></label>
+      <label>Обработка одной заявки, часов<input type="number" id="bDeal" min="1" value="${S.settings.baselineDealHours}"></label></div>
+      <div style="margin-top:10px"><button class="btn primary small" id="saveBase">Сохранить</button></div></div>`:''}
+    <p class="small muted">Время поиска измеряется автоматически: от первого символа в поиске до открытия карточки клиента. Замеров: ${metrics().searchCnt}.</p>`;
+  if(t==='risks') body = `<div class="panel tw"><h3>Реестр рисков</h3><table><thead><tr><th>Риск</th><th>Вероятность</th><th>Меры</th><th>Статус</th></tr></thead><tbody>
+    ${S.risks.map(r=>`<tr><td><b>${esc(r.title)}</b></td><td>${pill(r.prob, r.prob==='Высокая'?'bad':r.prob==='Средняя'?'warn':'ok')}</td><td class="small">${esc(r.measure)}</td>
+      <td>${can.plan()?`<select data-risk="${r.id}" style="width:auto" aria-label="Статус риска">${[['open','Открыт'],['control','Под контролем'],['closed','Закрыт'],['happened','Наступил']].map(o=>`<option value="${o[0]}" ${r.status===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`:esc({open:'Открыт',control:'Под контролем',closed:'Закрыт',happened:'Наступил'}[r.status])}</td></tr>`).join('')}
+    </tbody></table></div>`;
+  if(t==='fb'){
+    const list = [...S.feedback].sort((a,b)=>b.date.localeCompare(a.date));
+    const avg = list.length ? list.reduce((s,f)=>s+f.rating,0)/list.length : 0;
+    body = `<div class="grid2"><div class="panel"><h3>Оставить отзыв о системе</h3><form id="fbf" style="display:grid;gap:10px">
+      <label>Тип<select id="fbk"><option value="bug">Проблема / ошибка</option><option value="idea">Предложение</option><option value="praise">Что нравится</option></select></label>
+      <label>Оценка удобства<select id="fbr">${[5,4,3,2,1].map(n=>`<option value="${n}">${n} из 5</option>`).join('')}</select></label>
+      <label>Комментарий<textarea id="fbt" required placeholder="Опишите, что получилось или что мешает работать"></textarea></label>
+      <div><button class="btn primary" type="submit">Отправить</button></div></form></div>
+      <div class="panel"><h3>Сводка</h3><div class="grid3">
+        <div><small class="muted">Отзывов</small><div style="font-size:22px;font-weight:600">${list.length}</div></div>
+        <div><small class="muted">Средняя оценка</small><div style="font-size:22px;font-weight:600">${avg.toFixed(1)}</div></div>
+        <div><small class="muted">Нерешённых проблем</small><div style="font-size:22px;font-weight:600">${list.filter(f=>f.kind==='bug'&&!f.resolved).length}</div></div></div></div></div>
+      <div class="panel"><h3>Отзывы пилотной группы</h3><div class="tl">${list.map(f=>`<div class="tl-item"><div class="tl-date">${fmtDate(f.date)}</div><div>
+        ${pill({bug:'Проблема',idea:'Предложение',praise:'Нравится'}[f.kind], {bug:'bad',idea:'info',praise:'ok'}[f.kind])} <span class="small muted">${esc(userName(f.userId))} · ${f.rating}/5</span>
+        ${f.resolved?pill('Решено','ok'):''}<div>${esc(f.text)}</div>
+        ${can.plan()&&!f.resolved?`<button class="btn small" data-resolve="${f.id}" style="margin-top:6px">Отметить решённым</button>`:''}</div></div>`).join('')||'<div class="muted">Отзывов пока нет</div>'}</div></div>`;
+  }
+  if(t==='rollback') body = rollbackView();
+  return `<div class="topline"><h1>Внедрение CRM</h1><span class="small muted">Этапов выполнено: ${done}/${S.plan.length}</span></div>
+    <div class="tabs">${tabs.map(x=>`<button data-sub="${x[0]}" class="${t===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>${body}`;
+}
+function rollbackView(){
+  const pilot = S.users.filter(u=>u.pilot).length;
+  return `<div class="panel"><h3>Условия отката</h3>
+    <p class="small muted" style="margin:0 0 10px">Откат выполняется, если в первые 3 дня пилотной эксплуатации выявлена критическая ошибка. Отметьте, что произошло:</p>
+    <div style="display:grid;gap:8px">
+      <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px"><input type="checkbox" id="rb1" style="width:auto"> Потеря или повреждение данных</label>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px">Не могут работать в системе: <input type="number" id="rb2" min="0" max="${pilot}" value="0" style="width:80px"> из ${pilot} менеджеров пилотной группы</label>
+    </div><div id="rbVerdict" style="margin-top:12px"></div></div>
+  <div class="panel"><h3>Порядок действий при откате</h3><ol style="margin:0;padding-left:20px;display:grid;gap:4px">
+    <li>Руководитель проекта принимает решение об откате.</li>
+    <li>Пользователи получают уведомление о временном возврате к прежнему способу работы.</li>
+    <li>Клиентская база выгружается в Excel, работа временно возвращается в Excel и почту.</li>
+    <li>Данные восстанавливаются из резервной копии.</li>
+    <li>Технический специалист анализирует причину сбоя и устраняет её.</li>
+    <li>После устранения причины система запускается повторно.</li></ol>
+    <div class="row" style="margin-top:14px"><button class="btn" id="expXls">Выгрузить базу в Excel (возврат к старой системе)</button>
+    ${can.admin()?`<button class="btn" id="goBackups">Восстановить из резервной копии</button>`:'<span class="small muted">Восстановление из копии выполняет администратор.</span>'}</div></div>`;
+}
+
+/* ---------- Перенос данных ---------- */
+let importState = null;
+const FIELDS = {name:'Компания / ФИО', contact:'Контактное лицо', phone:'Телефон', email:'Email', inn:'ИНН', city:'Город', owner:'Менеджер', note:'Комментарий', skip:'— не переносить —'};
+function guessField(h){
+  h = String(h||'').toLowerCase();
+  if(/инн/.test(h)) return 'inn';
+  if(/тел|phone|моб/.test(h)) return 'phone';
+  if(/mail|почт/.test(h)) return 'email';
+  if(/контакт|лицо/.test(h)) return 'contact';
+  if(/город|city/.test(h)) return 'city';
+  if(/менедж|ответств/.test(h)) return 'owner';
+  if(/коммент|примеч|заметк/.test(h)) return 'note';
+  if(/компан|клиент|наимен|назван|фио|организ/.test(h)) return 'name';
+  return 'skip';
+}
+function migrateView(){
+  const hist = S.imports;
+  let step = '';
+  if(importState){
+    const {headers, rows, map, fileName} = importState;
+    const preview = analyzeImport();
+    step = `<div class="panel"><div class="topline" style="margin-bottom:10px"><h3>Файл «${esc(fileName)}»: ${rows.length} строк</h3><button class="btn small" id="cancelImp">Отменить</button></div>
+      <p class="small muted" style="margin:0 0 8px">Проверьте, какие столбцы в какие поля CRM переносятся:</p>
+      <div class="tw"><table class="small"><thead><tr>${headers.map((h,i)=>`<th><div>${esc(h||'Столбец '+(i+1))}</div><select data-map="${i}" style="margin-top:4px;font-size:12px;padding:4px">${Object.entries(FIELDS).map(([k,v])=>`<option value="${k}" ${map[i]===k?'selected':''}>${v}</option>`).join('')}</select></th>`).join('')}</tr></thead>
+      <tbody>${rows.slice(0,5).map(r=>`<tr>${headers.map((h,i)=>`<td>${esc(r[i]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      ${rows.length>5?`<p class="small muted">…и ещё ${rows.length-5} строк</p>`:''}
+      <div class="grid3" style="margin-top:12px">
+        <div class="note ok">Новых клиентов: <b>${preview.created}</b></div>
+        <div class="note warn">Совпадают с базой (будут объединены): <b>${preview.merged}</b></div>
+        <div class="note ${preview.empty?'bad':'info'}">Пустых строк без названия: <b>${preview.empty}</b></div></div>
+      ${!map.includes('name')?'<div class="note bad" style="margin-top:10px">Укажите, какой столбец содержит название компании или ФИО.</div>':''}
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="runImp" ${map.includes('name')?'':'disabled'}>Перенести в CRM</button>
+      <span class="small muted">Перед переносом автоматически создаётся резервная копия.</span></div></div>`;
+  }
+  return `<div class="topline"><h1>Перенос клиентской базы</h1></div>
+    <div class="panel"><h3>Загрузка из Excel или CSV</h3>
+      <p class="small muted" style="margin:0 0 12px">Загрузите файл, в котором отдел вёл клиентов. Система сама определит столбцы, найдёт дубли с уже внесёнными клиентами и объединит их, а после переноса сверит количество строк.</p>
+      <div class="row"><label class="btn primary" style="display:inline-flex;color:var(--accent-ink)">Выбрать файл<input type="file" id="file" accept=".xlsx,.xls,.csv" hidden></label>
+      <button class="btn" id="demoImp">Загрузить пример файла</button>
+      ${window.XLSX?'':'<span class="small muted">Библиотека Excel не загрузилась, доступен только CSV.</span>'}</div></div>
+    ${step}
+    <div class="panel tw"><h3>Журнал переносов и сверка</h3>${hist.length?`<table class="small"><thead><tr><th>Дата</th><th>Файл</th><th class="r">Строк</th><th class="r">Новых</th><th class="r">Объединено</th><th class="r">Пустых</th><th>Сверка</th></tr></thead><tbody>
+      ${hist.map(h=>{ const ok = h.created+h.merged+h.empty===h.total; return `<tr><td class="num">${fmtDT(h.date)}</td><td>${esc(h.file)}</td><td class="r">${h.total}</td><td class="r">${h.created}</td><td class="r">${h.merged}</td><td class="r">${h.empty}</td>
+      <td>${ok?pill('Потерь нет','ok'):pill('Расхождение','bad')}</td></tr>`;}).join('')}</tbody></table>`:'<div class="muted small">Переносов ещё не было</div>'}</div>
+    ${dupsPanel()}`;
+}
+function rowToClient(r){
+  const o = {}; importState.map.forEach((f,i)=>{ if(f!=='skip'){ const v = String(r[i]??'').trim(); if(v) o[f] = o[f] ? o[f]+'; '+v : v; } }); return o;
+}
+function analyzeImport(){
+  let created=0, merged=0, empty=0; const pool = [...S.clients];
+  importState.rows.forEach(r=>{ const o = rowToClient(r); if(!o.name){ empty++; return; }
+    if(findDuplicate(o,pool)) merged++; else { created++; pool.push({id:'tmp'+created, ...o}); } });
+  return {created, merged, empty};
+}
+function runImport(){
+  const b = makeBackup('Перед импортом «'+importState.fileName+'»');
+  const managers = S.users.filter(u=>u.role==='manager');
+  let created=0, merged=0, empty=0, rr=0;
+  importState.rows.forEach(r=>{
+    const o = rowToClient(r); if(!o.name){ empty++; return; }
+    const owner = (o.owner && managers.find(m=>m.name.toLowerCase().includes(o.owner.toLowerCase().split(' ')[0]))) || managers[rr++ % managers.length];
+    const d = findDuplicate(o, S.clients);
+    if(d){ ['contact','phone','email','inn','city'].forEach(k=>{ if(!d[k] && o[k]) d[k]=o[k]; }); d.updated=today();
+      S.interactions.push({id:uid(), clientId:d.id, userId:me.id, type:'system', text:'Объединено с записью из файла «'+importState.fileName+'»'+(o.note?'. Комментарий: '+o.note:''), date:today()}); merged++; }
+    else { const c = {id:uid(), name:o.name, contact:o.contact||'', phone:o.phone||'', email:o.email||'', inn:o.inn||'', city:o.city||'', source:'Excel', owner:owner.id, created:today(), updated:today()};
+      S.clients.push(c); S.interactions.push({id:uid(), clientId:c.id, userId:me.id, type:'system', text:'Перенесён из файла «'+importState.fileName+'»'+(o.note?'. Комментарий: '+o.note:''), date:today()}); created++; }
+  });
+  const rec = {id:uid(), date:today(), file:importState.fileName, total:importState.rows.length, created, merged, empty, backup:b.id};
+  S.imports.unshift(rec);
+  const st = S.plan.find(p=>p.id==='s5'); if(st && st.status!=='done') st.status='done';
+  log('Импорт «'+importState.fileName+'»: строк '+rec.total+', новых '+created+', объединено '+merged+', пустых '+empty);
+  save(); importState=null; render();
+  toast(rec.created+rec.merged+rec.empty===rec.total ? 'Перенос завершён, потерь нет' : 'Перенос завершён с расхождением, проверьте журнал');
+}
+function loadRows(fileName, aoa){
+  aoa = aoa.filter(r=>r && r.some(v=>String(v??'').trim()!==''));
+  if(aoa.length<2){ toast('В файле нет строк с данными'); return; }
+  const headers = aoa[0].map(h=>String(h??'').trim());
+  importState = {fileName, headers, rows:aoa.slice(1), map:headers.map(guessField)};
+  render();
+}
+function demoFile(){
+  const aoa = [['Наименование клиента','Контактное лицо','Тел. моб.','E-mail','ИНН','Город','Ответственный','Примечание'],
+    ['ООО «Ромашка»','Сергеева Инна','8 (916) 100-20-30','romashka@mail.ru','7712000001','Москва','Петров','Интересуются поставкой к весне'],
+    ['ООО «Гефест»','Лаптев Борис','+7 921 300-40-50','gefest@yandex.ru','7813000002','Санкт-Петербург','Иванова',''],
+    ['ТехноПарк АО','Лебедева С.','','ZAKAZ@TECHNOPARK.RU','','Санкт-Петербург','Иванова','Дубль: уже есть в CRM'],
+    ['ООО «Каскад»','Жуков Пётр','8-343-222-11-00','kaskad@ural.ru','6670000003','Екатеринбург','Кузнецов','Просили перезвонить в понедельник'],
+    ['','','','','','','',''],
+    ['ИП Тарасов','Тарасов Егор','89051112233','tarasov.ip@gmail.com','','Воронеж','Смирнова',''],
+    ['ООО «Северный ветер»','Андреева К.','+7 8182 20 30 40','','','Архангельск','Орлов','Дубль по телефону'],
+    ['ООО «НоваМед»','Щербакова Юлия','+7 (843) 555-00-99','novamed@med.ru','1655000004','Казань','Фёдорова',''],
+    ['ООО «БетонПро»','Рябов Кирилл','+7 (863) 299-88-77','','6164000005','Ростов-на-Дону','Морозов','Большой объём, нужен выезд'],
+  ];
+  loadRows('Клиенты_отдел_продаж.xlsx', aoa);
+}
+function dupsPanel(){
+  const groups = duplicateGroups(S.clients);
+  return `<div class="panel" id="dups"><h3>Дубли в базе</h3>${groups.length?`<p class="small muted" style="margin:0 0 10px">Совпадение по телефону, email, ИНН или названию. При объединении история и заявки переносятся в основную запись, пустые поля заполняются из дубля.</p>
+    ${groups.map(g=>`<div style="border-top:1px solid var(--soft);padding:10px 0;display:grid;gap:6px">${g.map((c,i)=>`<div class="row small">${i===0?pill('Основная','ok'):pill('Дубль','warn')} <b>${esc(c.name)}</b> <span class="muted">${esc([c.phone,c.email,c.inn].filter(Boolean).join(' · '))} · ${esc(userName(c.owner))}</span></div>`).join('')}
+      <div><button class="btn small" data-merge="${g.map(c=>c.id).join(',')}">Объединить в «${esc(g[0].name)}»</button></div></div>`).join('')}`:'<div class="note ok">Дублей не найдено</div>'}</div>`;
+}
+function mergeGroup(ids){
+  const [mainId, ...rest] = ids; const main = S.clients.find(c=>c.id===mainId);
+  rest.forEach(id=>{ const d = S.clients.find(c=>c.id===id); if(!d) return;
+    ['contact','phone','email','inn','city'].forEach(k=>{ if(!main[k] && d[k]) main[k]=d[k]; });
+    S.deals.forEach(x=>{ if(x.clientId===id) x.clientId=mainId; });
+    S.interactions.forEach(x=>{ if(x.clientId===id) x.clientId=mainId; });
+    S.interactions.push({id:uid(), clientId:mainId, userId:me.id, type:'system', text:'Объединено с дублем «'+d.name+'»', date:today()});
+    S.clients = S.clients.filter(c=>c.id!==id); });
+  main.updated = today(); log('Объединены дубли в «'+main.name+'» ('+rest.length+')'); save(); render(); toast('Дубли объединены');
+}
+
+/* ---------- Администрирование ---------- */
+function adminView(){
+  const t = sub || 'users';
+  const tabs = [['users','Пользователи и права'],['backups','Резервные копии'],['log','Журнал действий']];
+  let body='';
+  if(t==='users') body = `<div class="panel tw"><div class="topline" style="margin-bottom:10px"><h3>Пользователи</h3><button class="btn small primary" id="newUser">Добавить пользователя</button></div>
+    <table><thead><tr><th>ФИО</th><th>Логин</th><th>Роль</th><th>Пилот</th><th>Статус</th><th></th></tr></thead><tbody>
+    ${S.users.map(u=>`<tr><td>${esc(u.name)}</td><td class="mono">${esc(u.login)}</td>
+      <td><select data-urole="${u.id}" style="width:auto" ${u.id===me.id?'disabled':''} aria-label="Роль">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${u.role===k?'selected':''}>${v}</option>`).join('')}</select></td>
+      <td>${u.role==='manager'?`<input type="checkbox" data-upilot="${u.id}" ${u.pilot?'checked':''} style="width:auto" aria-label="Пилотная группа">`:'—'}</td>
+      <td>${u.active?pill('Активен','ok'):pill('Заблокирован','bad')}</td>
+      <td class="r">${u.id!==me.id?`<button class="btn small" data-ublock="${u.id}">${u.active?'Заблокировать':'Разблокировать'}</button> `:''}<button class="btn small" data-upass="${u.id}">Сменить пароль</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="panel"><h3>Права доступа по ролям</h3><div class="tw"><table class="small"><thead><tr><th>Действие</th><th>Менеджер</th><th>Руководитель</th><th>Администратор</th></tr></thead><tbody>
+    ${[['Свои клиенты, заявки, история','да','да','да'],['Клиенты и заявки всего отдела','нет','да','да'],['Отчёты и критерии успеха','нет','да','да'],['Импорт из Excel, объединение дублей','нет','да','да'],['Управление планом и рисками','нет','да','да'],['Пользователи, права, пароли','нет','нет','да'],['Резервные копии и восстановление','нет','нет','да'],['Удаление клиентов','нет','нет','да']]
+      .map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(v=>`<td>${v==='да'?pill('да','ok'):pill('нет','')}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+  if(t==='backups') body = `<div class="panel"><div class="topline" style="margin-bottom:10px"><h3>Резервные копии</h3><div class="row">
+      <button class="btn primary small" id="mkBackup">Создать копию сейчас</button><button class="btn small" id="dlBackup">Скачать текущую базу (JSON)</button>
+      <label class="btn small">Загрузить копию из файла<input type="file" id="upBackup" accept=".json" hidden></label></div></div>
+    <p class="small muted" style="margin:0 0 10px">Копия создаётся автоматически перед каждым импортом и восстановлением. Хранятся последние 15 копий.</p>
+    ${backups.length?`<div class="tw"><table class="small"><thead><tr><th>Дата</th><th>Описание</th><th>Кто</th><th class="r">Клиентов</th><th class="r">Заявок</th><th></th></tr></thead><tbody>
+    ${backups.map(b=>`<tr><td class="num">${fmtDT(b.date)}</td><td>${esc(b.label)}</td><td>${esc(b.by)}</td><td class="r">${b.counts.clients}</td><td class="r">${b.counts.deals}</td><td class="r"><button class="btn small danger" data-restore="${b.id}">Восстановить</button></td></tr>`).join('')}
+    </tbody></table></div>`:'<div class="note warn">Резервных копий ещё нет. Создайте первую перед началом работы.</div>'}</div>
+    <div class="panel"><h3>Сброс демонстрационных данных</h3><p class="small muted" style="margin:0 0 10px">Возвращает систему к исходному демонстрационному состоянию. Текущие данные сначала сохраняются в резервную копию.</p>
+    <button class="btn danger small" id="resetDemo">Сбросить к демо-данным</button></div>`;
+  if(t==='log') body = `<div class="panel tw"><h3>Журнал действий пользователей</h3><table class="small"><thead><tr><th>Дата</th><th>Пользователь</th><th>Действие</th></tr></thead><tbody>
+    ${S.log.slice(0,150).map(l=>`<tr><td class="num" style="white-space:nowrap">${fmtDT(l.date)}</td><td>${esc(l.user)}</td><td>${esc(l.action)}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="topline"><h1>Администрирование</h1></div><div class="tabs">${tabs.map(x=>`<button data-sub="${x[0]}" class="${t===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>${body}`;
+}
+function userModal(u){
+  const isNew = !u;
+  modal(`<h2>${isNew?'Новый пользователь':'Смена пароля: '+esc(u.name)}</h2><form class="form">
+    ${isNew?`<label class="full">ФИО *<input id="u_name" required></label><label>Логин *<input id="u_login" required autocomplete="off"></label>
+      <label>Роль<select id="u_role">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k==='manager'?'selected':''}>${v}</option>`).join('')}</select></label>`:''}
+    <label class="${isNew?'':'full'}">Пароль *<input id="u_pass" type="text" required autocomplete="new-password" minlength="4"></label></form>
+    <div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="saveU">Сохранить</button></div>`, (m,close)=>{
+    m.querySelector('#saveU').onclick=()=>{
+      const pass = m.querySelector('#u_pass').value; if(pass.length<4){ toast('Пароль должен быть не короче 4 символов'); return; }
+      if(isNew){ const name=m.querySelector('#u_name').value.trim(), login=m.querySelector('#u_login').value.trim().toLowerCase();
+        if(!name||!login){ toast('Заполните ФИО и логин'); return; }
+        if(S.users.some(x=>x.login===login)){ toast('Логин «'+login+'» уже занят'); return; }
+        S.users.push({id:uid(), name, login, pass, role:m.querySelector('#u_role').value, pilot:false, active:true}); log('Добавлен пользователь '+name+' ('+login+')'); }
+      else { u.pass = pass; log('Изменён пароль пользователя '+u.name); }
+      save(); close(); render(); toast('Сохранено');
+    };
+  });
+}
+
+/* ============ Обработчики ============ */
+function bindMain(){
+  const main = $('#main');
+  main.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{ sub=b.dataset.sub; render(); });
+  main.querySelectorAll('[data-client]').forEach(tr=>{
+    const go = ()=>{ if(!tr.dataset.client||tr.dataset.client==='undefined') return;
+      if(searchStarted && view==='clients'){ const sec = (performance.now()-searchStarted)/1000; if(sec<600){ S.metrics.searches.push({sec:Math.round(sec*10)/10, date:today()}); S.metrics.searches = S.metrics.searches.slice(-200); save(); } searchStarted=null; }
+      view='clients'; openClient=tr.dataset.client; render(); window.scrollTo(0,0); };
+    tr.onclick = go; tr.onkeydown = e=>{ if(e.key==='Enter') go(); };
+  });
+  const q = $('#q'); if(q){ q.oninput = ()=>{ if(!searchStarted) searchStarted = performance.now(); query=q.value; const pos=q.selectionStart; render(); const n=$('#q'); n.focus(); n.setSelectionRange(pos,pos); }; }
+  const fo = $('#fo'); if(fo) fo.onchange=()=>{ filterOwner=fo.value; render(); };
+  const on = (id, fn) => { const el = $('#'+id); if(el) el.onclick = fn; };
+  on('newClient', ()=>editClientModal(null));
+  on('expXls', exportExcel);
+  on('goDups', e=>{ e.preventDefault(); view = can.import()?'migrate':'clients'; render(); setTimeout(()=>$('#dups')?.scrollIntoView(),0); });
+  on('back', ()=>{ openClient=null; render(); });
+  on('editC', ()=>editClientModal(S.clients.find(c=>c.id===openClient)));
+  on('delC', ()=>{ const c=S.clients.find(x=>x.id===openClient);
+    confirmBox('Удалить клиента?', 'Клиент «'+esc(c.name)+'», его заявки и история будут удалены. Перед удалением создаётся резервная копия.', 'Удалить', ()=>{
+      makeBackup('Перед удалением «'+c.name+'»'); S.clients=S.clients.filter(x=>x.id!==c.id); S.deals=S.deals.filter(d=>d.clientId!==c.id); S.interactions=S.interactions.filter(i=>i.clientId!==c.id);
+      log('Удалён клиент «'+c.name+'»'); save(); openClient=null; render(); toast('Клиент удалён'); }, true); });
+  on('newDeal', ()=>newDealModal(openClient));
+  main.querySelectorAll('[data-deal]').forEach(s=>s.onchange=()=>setDealStatus(s.dataset.deal, s.value));
+  const iform = $('#if'); if(iform) iform.onsubmit = e=>{ e.preventDefault(); const t=$('#itext').value.trim(); if(!t) return;
+    S.interactions.push({id:uid(), clientId:openClient, userId:me.id, type:$('#itype').value, text:t, date:today()});
+    const c=S.clients.find(x=>x.id===openClient); c.updated=today(); log('Добавлена запись в историю «'+c.name+'»'); save(); render(); toast('Запись добавлена'); };
+  // внедрение
+  main.querySelectorAll('[data-stage]').forEach(s=>s.onchange=()=>{ const p=S.plan.find(x=>x.id===s.dataset.stage); p.status=s.value; log('Этап «'+p.title+'»: '+s.options[s.selectedIndex].text); save(); render(); });
+  main.querySelectorAll('[data-risk]').forEach(s=>s.onchange=()=>{ const r=S.risks.find(x=>x.id===s.dataset.risk); r.status=s.value; log('Риск «'+r.title+'»: '+s.options[s.selectedIndex].text); save(); render(); });
+  on('saveBase', ()=>{ S.settings.baselineSearchSec=Math.max(1,+$('#bSearch').value||120); S.settings.baselineDealHours=Math.max(1,+$('#bDeal').value||48); log('Изменены базовые показатели'); save(); render(); toast('Сохранено'); });
+  const fbf=$('#fbf'); if(fbf) fbf.onsubmit=e=>{ e.preventDefault(); const t=$('#fbt').value.trim(); if(!t) return;
+    S.feedback.push({id:uid(), userId:me.id, date:today(), kind:$('#fbk').value, rating:+$('#fbr').value, text:t, resolved:false}); log('Оставлен отзыв о системе'); save(); render(); toast('Спасибо, отзыв сохранён'); };
+  main.querySelectorAll('[data-resolve]').forEach(b=>b.onclick=()=>{ S.feedback.find(f=>f.id===b.dataset.resolve).resolved=true; log('Отзыв отмечен решённым'); save(); render(); });
+  const rb1=$('#rb1'), rb2=$('#rb2');
+  if(rb1){ const pilot=S.users.filter(u=>u.pilot).length; const upd=()=>{ const share = (+rb2.value||0)/Math.max(1,pilot)*100; const need = rb1.checked || share>30;
+      $('#rbVerdict').innerHTML = need ? `<div class="note bad"><b>Требуется аварийный откат.</b> ${rb1.checked?'Зафиксирована потеря данных. ':''}${share>30?'Не могут работать '+Math.round(share)+' % пилотной группы (порог 30 %).':''}</div>` : `<div class="note ok">Критических условий нет, откат не требуется. Не могут работать ${Math.round(share)} % пилотной группы при пороге 30 %.</div>`; };
+    rb1.onchange=upd; rb2.oninput=upd; upd(); }
+  on('goBackups', ()=>{ view='admin'; sub='backups'; render(); });
+  // перенос
+  const file=$('#file'); if(file) file.onchange=()=>{ const f=file.files[0]; if(!f) return; const rd=new FileReader();
+    if(/\.csv$/i.test(f.name)){ rd.onload=()=>loadRows(f.name, parseCSV(String(rd.result))); rd.readAsText(f,'utf-8'); }
+    else { if(!window.XLSX){ toast('Для Excel нужна библиотека XLSX, сохраните файл как CSV'); return; }
+      rd.onload=()=>{ try{ const wb=XLSX.read(new Uint8Array(rd.result),{type:'array'}); loadRows(f.name, XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''})); }catch(e){ toast('Не удалось прочитать файл: '+e.message); } };
+      rd.readAsArrayBuffer(f); } };
+  on('demoImp', demoFile);
+  on('cancelImp', ()=>{ importState=null; render(); });
+  main.querySelectorAll('[data-map]').forEach(s=>s.onchange=()=>{ importState.map[+s.dataset.map]=s.value; render(); });
+  on('runImp', runImport);
+  main.querySelectorAll('[data-merge]').forEach(b=>b.onclick=()=>mergeGroup(b.dataset.merge.split(',')));
+  // админ
+  on('newUser', ()=>userModal(null));
+  main.querySelectorAll('[data-upass]').forEach(b=>b.onclick=()=>userModal(S.users.find(u=>u.id===b.dataset.upass)));
+  main.querySelectorAll('[data-urole]').forEach(s=>s.onchange=()=>{ const u=S.users.find(x=>x.id===s.dataset.urole); u.role=s.value; if(u.role!=='manager') u.pilot=false; log('Роль '+u.name+': '+ROLES[u.role]); save(); render(); });
+  main.querySelectorAll('[data-upilot]').forEach(c=>c.onchange=()=>{ const u=S.users.find(x=>x.id===c.dataset.upilot); u.pilot=c.checked; log(u.name+(u.pilot?' включён в':' исключён из')+' пилотную группу'); save(); render(); });
+  main.querySelectorAll('[data-ublock]').forEach(b=>b.onclick=()=>{ const u=S.users.find(x=>x.id===b.dataset.ublock); u.active=!u.active; log((u.active?'Разблокирован ':'Заблокирован ')+u.name); save(); render(); });
+  on('mkBackup', ()=>{ makeBackup('Ручная копия'); log('Создана резервная копия'); save(); render(); toast('Резервная копия создана'); });
+  on('dlBackup', ()=>{ download('crm_backup_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(S,null,1), 'application/json'); log('Скачана резервная копия'); save(); });
+  const up=$('#upBackup'); if(up) up.onchange=()=>{ const f=up.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const d=JSON.parse(rd.result);
+      if(!d.clients||!d.users) throw new Error('это не файл резервной копии CRM');
+      backups.unshift({id:uid(), date:today(), label:'Загружена из файла «'+f.name+'»', by:me.name, data:d, counts:{clients:d.clients.length, deals:(d.deals||[]).length, interactions:(d.interactions||[]).length}});
+      store.set(BKEY,backups); render(); toast('Копия загружена, её можно восстановить'); }catch(e){ toast('Не удалось загрузить: '+e.message); } }; rd.readAsText(f); };
+  main.querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>{ const bk=backups.find(x=>x.id===b.dataset.restore);
+    confirmBox('Восстановить данные?', 'Текущие данные будут заменены копией от <b>'+fmtDT(bk.date)+'</b> ('+bk.counts.clients+' клиентов). Перед заменой текущее состояние сохраняется в новую резервную копию.', 'Восстановить', ()=>{ restoreBackup(bk.id); render(); }, true); });
+  on('resetDemo', ()=>confirmBox('Сбросить к демо-данным?', 'Все изменения будут заменены демонстрационными данными. Текущее состояние сначала сохраняется в резервную копию.', 'Сбросить', ()=>{
+    makeBackup('Перед сбросом к демо-данным'); const id=me.id; S=seed(); save(); me=S.users.find(u=>u.id===id)||null; if(!me) store.del(SKEY); view='clients'; sub=null; render(); toast('Демо-данные восстановлены'); }, true));
+}
+
+render();
+</script>
