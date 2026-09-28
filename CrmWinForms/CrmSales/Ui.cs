@@ -103,6 +103,10 @@ public static class Ui
         g.ColumnHeadersDefaultCellStyle.ForeColor = Muted;
         g.ColumnHeadersDefaultCellStyle.Font = Small;
         g.ColumnHeadersDefaultCellStyle.Padding = new Padding(4);
+        // Без этого Windows заливает заголовок выделенного столбца ярко-синим
+        g.ColumnHeadersDefaultCellStyle.SelectionBackColor = Back;
+        g.ColumnHeadersDefaultCellStyle.SelectionForeColor = Muted;
+        g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
         g.DefaultCellStyle.SelectionBackColor = AccentSoft;
         g.DefaultCellStyle.SelectionForeColor = Ink;
         g.DefaultCellStyle.Padding = new Padding(4, 3, 4, 3);

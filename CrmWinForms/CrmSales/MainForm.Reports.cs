@@ -34,11 +34,14 @@ public partial class MainForm
         var managersBox = Ui.Box("Результаты менеджеров", rManagers, 300);
         var criteriaBox = Ui.Box("Критерии успешности внедрения", rCriteria, 280);
         content.Controls.AddRange(new Control[] { head, rKpis, charts, managersBox, criteriaBox });
-        content.Resize += (s, e) =>
+        void Fit()
         {
-            var w = content.ClientSize.Width - 24;
+            var w = content.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 8;
+            if (w < 300) return;
             foreach (Control c in content.Controls) c.Width = w;
-        };
+        }
+        content.SizeChanged += (s, e) => Fit();
+        content.VisibleChanged += (s, e) => Fit();
         return content;
     }
 
