@@ -24,7 +24,7 @@ public static class Metrics
         var last = Db.Data.Imports.FirstOrDefault();
         if (last == null) return null;
         var withData = Math.Max(1, last.Total - last.Empty);
-        return (last.Created + last.Merged) * 100.0 / withData;
+        return (last.Created + last.Merged + last.Updated + last.Unchanged) * 100.0 / withData;
     }
 
     public static (int Total, int Active) PilotActivity()

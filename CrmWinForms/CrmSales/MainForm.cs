@@ -122,7 +122,8 @@ public partial class MainForm : Form
             Importer.ExportExcel(dlg.FileName, clients, Db.VisibleDeals());
             Db.Log($"Выгрузка клиентской базы в Excel ({clients.Count} записей)");
             Db.Save();
-            Ui.Info(this, $"Выгружено клиентов: {clients.Count}.\nФайл: {dlg.FileName}");
+            Ui.Info(this, $"Выгружено клиентов: {clients.Count}.\nФайл: {dlg.FileName}" +
+                          (Db.CanManage ? "\n\nМожно исправить данные клиентов в Excel (не меняя столбец ID) и загрузить файл обратно на вкладке «Перенос данных» — изменения применятся." : ""));
         }
         catch (IOException ex)
         {

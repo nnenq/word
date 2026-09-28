@@ -8,10 +8,13 @@ public partial class MainForm
     DataGridView aUsers = null!, aBackups = null!, aLog = null!;
     bool aLoading;
 
+    TabControl aInner = null!;
+
     Control BuildAdmin()
     {
-        var inner = new TabControl { Dock = DockStyle.Fill };
+        var inner = aInner = new TabControl { Dock = DockStyle.Fill };
         inner.TabPages.Add(Page("Пользователи и права", BuildUsers()));
+        inner.TabPages.Add(Page("Откат действий сотрудника", BuildUndo()));
         inner.TabPages.Add(Page("Резервные копии", BuildBackups()));
         inner.TabPages.Add(Page("База данных", BuildDatabase()));
         inner.TabPages.Add(Page("Журнал действий", BuildLog()));
@@ -82,6 +85,7 @@ public partial class MainForm
             new[] { "Управление планом внедрения и рисками", "нет", "да", "да" },
             new[] { "Пользователи, роли, пароли", "нет", "нет", "да" },
             new[] { "Резервные копии и восстановление", "нет", "нет", "да" },
+            new[] { "Откат действий сотрудника", "нет", "нет", "да" },
             new[] { "Удаление клиентов", "нет", "нет", "да" },
         };
         foreach (var r in matrix)
@@ -95,7 +99,95 @@ public partial class MainForm
         split.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
         split.Controls.Add(Ui.Box("Пользователи (роль и пилотная группа меняются прямо в таблице)", aUsers), 0, 0);
         split.Controls.Add(Ui.Box("Права доступа по ролям", rights), 0, 1);
-        return Ui.Stack(1, Ui.Row(add, pass, block), split);
+        var undo = Ui.Btn("Откатить действия сотрудника…", (s, e) =>
+        {
+            var id = Ui.SelectedTag(aUsers);
+            aInner.SelectedIndex = 1;
+            var item = uUser.Items.Cast<Item>().FirstOrDefault(i => i.Id == id);
+            if (item != null) uUser.SelectedItem = item;
+        });
+        return Ui.Stack(1, Ui.Row(add, pass, block, undo), split);
+    }
+
+    // ---------- Откат действий сотрудника ----------
+
+    ComboBox uUser = null!, uPeriod = null!;
+    DataGridView uGrid = null!;
+    Label uSummary = null!;
+    List<ChangeRecord> uShown = new();
+
+    Control BuildUndo()
+    {
+        uUser = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 240 };
+        uPeriod = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
+        uPeriod.Items.AddRange(new object[] { "За последний час", "За сегодня", "За 3 дня", "За неделю", "За всё время" });
+        uPeriod.SelectedIndex = 1;
+        uUser.SelectedIndexChanged += (s, e) => RefreshUndo();
+        uPeriod.SelectedIndexChanged += (s, e) => RefreshUndo();
+
+        uGrid = Ui.Grid();
+        uGrid.MultiSelect = true;
+        uGrid.Columns.AddRange(Ui.Col("Дата", 85), Ui.Col("Действие сотрудника", 190), Ui.Col("Объект", 60), Ui.Col("Название", 150),
+            Ui.Col("Что изменилось", 300));
+
+        var one = Ui.Btn("Отменить выбранные изменения", (s, e) =>
+            UndoRecords(uGrid.SelectedRows.Cast<DataGridViewRow>().Select(r => uShown.First(c => c.Id == (long)r.Tag!)).ToList()));
+        var all = Ui.Btn("Отменить все изменения за период", (s, e) => UndoRecords(uShown), primary: true);
+
+        uSummary = Ui.Text("", Ui.Bold);
+        var hint = Ui.Text("Программа запоминает каждое изменение клиентов, заявок и истории: кто, когда, что было и что стало. " +
+                           "При отмене объект возвращается в состояние «до». Если тот же объект позже менял другой сотрудник, изменение не отменяется, " +
+                           "чтобы не затереть чужую работу. Перед отменой создаётся резервная копия.", Ui.Small, Ui.Muted);
+        hint.MaximumSize = new Size(1150, 0);
+        return Ui.Stack(3, Ui.Row(Ui.Text("Сотрудник:"), uUser, Ui.Text("Период:"), uPeriod), hint, Ui.Row(uSummary, one, all), uGrid);
+    }
+
+    DateTime UndoSince() => uPeriod.SelectedIndex switch
+    {
+        0 => DateTime.Now.AddHours(-1),
+        1 => DateTime.Today,
+        2 => DateTime.Today.AddDays(-2),
+        3 => DateTime.Today.AddDays(-6),
+        _ => DateTime.MinValue,
+    };
+
+    void RefreshUndo()
+    {
+        var selected = (uUser.SelectedItem as Item)?.Id;
+        if (uUser.Items.Count != Db.Data.Users.Count)
+        {
+            uUser.Items.Clear();
+            foreach (var u in Db.Data.Users) uUser.Items.Add(new Item(u.Id, $"{u.Name} ({Names.Of(u.Role)})"));
+        }
+        uUser.SelectedItem = uUser.Items.Cast<Item>().FirstOrDefault(i => i.Id == selected) ?? (uUser.Items.Count > 0 ? uUser.Items[0] : null);
+        if (uUser.SelectedItem is not Item user) return;
+
+        uShown = ChangeTracker.ChangesOf(user.Id, UndoSince());
+        uGrid.Rows.Clear();
+        foreach (var c in uShown)
+        {
+            var i = uGrid.Rows.Add(c.Date.ToString("dd.MM.yyyy HH:mm"), c.Action, ChangeTracker.EntityName(c.Entity), c.Title, ChangeTracker.Describe(c));
+            uGrid.Rows[i].Tag = c.Id;
+            uGrid.Rows[i].Cells[4].Style.ForeColor = c.Before == null ? Ui.Ok : c.After == null ? Ui.Bad : Ui.Ink;
+        }
+        uSummary.Text = uShown.Count == 0 ? "Изменений за период нет" : $"Изменений: {uShown.Count}   ";
+    }
+
+    void UndoRecords(List<ChangeRecord> records)
+    {
+        if (records.Count == 0) { Ui.Error(this, "Нет изменений для отмены."); return; }
+        var who = records[0].UserName;
+        if (!Ui.Confirm(this, $"Отменить {records.Count} изменений сотрудника {who}?\nПеред отменой будет создана резервная копия.")) return;
+        Db.Backup($"Перед откатом действий: {who}");
+        var (undone, skipped) = ChangeTracker.Undo(records);
+        Db.Log($"Откат действий сотрудника {who}: отменено {undone}, пропущено {skipped.Count}");
+        Db.Save();
+        RefreshAll();
+        var msg = $"Отменено изменений: {undone}.";
+        if (skipped.Count > 0)
+            msg += $"\n\nНе отменено ({skipped.Count}) — эти объекты позже изменил другой сотрудник:\n" +
+                   string.Join("\n", skipped.Take(10).Select(c => $"• {ChangeTracker.EntityName(c.Entity)} «{c.Title}»"));
+        Ui.Info(this, msg);
     }
 
     Control BuildBackups()
@@ -267,6 +359,7 @@ public partial class MainForm
             }
 
             RefreshDatabase();
+            RefreshUndo();
 
             aLog.Rows.Clear();
             foreach (var l in Db.Data.Log.Take(300)) aLog.Rows.Add(l.Date.ToString("dd.MM.yyyy HH:mm"), l.User, l.Action);

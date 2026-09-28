@@ -73,7 +73,8 @@ public static class Db
         );
         CREATE TABLE IF NOT EXISTS Imports (
             Id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT NOT NULL, FileName TEXT NOT NULL,
-            Total INTEGER NOT NULL, Created INTEGER NOT NULL, Merged INTEGER NOT NULL, Empty INTEGER NOT NULL
+            Total INTEGER NOT NULL, Created INTEGER NOT NULL, Merged INTEGER NOT NULL, Empty INTEGER NOT NULL,
+            Updated INTEGER NOT NULL DEFAULT 0, Unchanged INTEGER NOT NULL DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS Searches (
             Id INTEGER PRIMARY KEY AUTOINCREMENT, Seconds REAL NOT NULL, Date TEXT NOT NULL
@@ -83,6 +84,17 @@ public static class Db
             Id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT NOT NULL, User TEXT NOT NULL, Action TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS Meta (Key TEXT PRIMARY KEY, Value TEXT);
+        CREATE TABLE IF NOT EXISTS Changes (      -- журнал изменений для отката действий сотрудника
+            Id       INTEGER PRIMARY KEY,
+            Date     TEXT NOT NULL,
+            UserId   TEXT, UserName TEXT, Action TEXT,
+            Entity   TEXT NOT NULL,                  -- Client / Deal / Interaction
+            EntityId TEXT NOT NULL,
+            Title    TEXT,
+            Before   TEXT,                           -- состояние до изменения (JSON), NULL — объект создан
+            After    TEXT,                           -- состояние после изменения (JSON), NULL — объект удалён
+            Undone   INTEGER NOT NULL DEFAULT 0
+        );
         CREATE INDEX IF NOT EXISTS IX_Clients_Owner ON Clients(OwnerId);
         CREATE INDEX IF NOT EXISTS IX_Deals_Client ON Deals(ClientId);
         CREATE INDEX IF NOT EXISTS IX_Interactions_Client ON Interactions(ClientId);
@@ -115,6 +127,15 @@ public static class Db
         cmd.CommandText = sql;
         cmd.Transaction = t;
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>Создаёт таблицы и добавляет столбцы, которых не было в базе прежней версии программы.</summary>
+    static void EnsureSchema(SqliteConnection c)
+    {
+        Exec(c, Schema);
+        var cols = Query(c, "SELECT name FROM pragma_table_info('Imports')", r => S(r, "name"));
+        if (!cols.Contains("Updated")) Exec(c, "ALTER TABLE Imports ADD COLUMN Updated INTEGER NOT NULL DEFAULT 0");
+        if (!cols.Contains("Unchanged")) Exec(c, "ALTER TABLE Imports ADD COLUMN Unchanged INTEGER NOT NULL DEFAULT 0");
     }
 
     static object Val(object? v) => v switch
@@ -168,17 +189,19 @@ public static class Db
     {
         Directory.CreateDirectory(BackupDir);
         var oldJson = Path.Combine(DataDir, "crm.json");
-        if (File.Exists(DbPath)) Data = Read(DbPath);
+        if (File.Exists(DbPath)) { Data = Read(DbPath); ChangeTracker.Reset(); }
         else if (File.Exists(oldJson))
         {
             // Перенос данных из прежней версии программы (JSON-файл) в базу SQLite
             Data = ReadJson(oldJson);
+            ChangeTracker.Reset();
             Save();
             File.Move(oldJson, oldJson + ".old", true);
         }
         else
         {
             Data = SeedData.Create();
+            ChangeTracker.Reset();
             Save();
         }
     }
@@ -187,7 +210,7 @@ public static class Db
     public static CrmData Read(string path)
     {
         using var c = Open(path);
-        Exec(c, Schema);
+        EnsureSchema(c);
         var d = new CrmData
         {
             Users = Query(c, "SELECT * FROM Users ORDER BY rowid", r => new User
@@ -227,9 +250,16 @@ public static class Db
             Imports = Query(c, "SELECT * FROM Imports ORDER BY Id DESC", r => new ImportRecord
             {
                 Date = D(r, "Date"), FileName = S(r, "FileName"), Total = I(r, "Total"), Created = I(r, "Created"), Merged = I(r, "Merged"), Empty = I(r, "Empty"),
+                Updated = I(r, "Updated"), Unchanged = I(r, "Unchanged"),
             }),
             Searches = Query(c, "SELECT * FROM Searches ORDER BY Id", r => new SearchMeasure { Seconds = Convert.ToDouble(r["Seconds"]), Date = D(r, "Date") }),
             Log = Query(c, "SELECT * FROM Log ORDER BY Id DESC LIMIT 2000", r => new LogEntry { Date = D(r, "Date"), User = S(r, "User"), Action = S(r, "Action") }),
+            Changes = Query(c, "SELECT * FROM Changes ORDER BY Id", r => new ChangeRecord
+            {
+                Id = Convert.ToInt64(r["Id"]), Date = D(r, "Date"), UserId = S(r, "UserId"), UserName = S(r, "UserName"), Action = S(r, "Action"),
+                Entity = S(r, "Entity"), EntityId = S(r, "EntityId"), Title = S(r, "Title"),
+                Before = r["Before"] as string, After = r["After"] as string, Undone = B(r, "Undone"),
+            }),
         };
         var settings = Query(c, "SELECT Key, Value FROM Settings", r => (Key: S(r, "Key"), Value: S(r, "Value"))).ToDictionary(x => x.Key, x => x.Value);
         if (settings.TryGetValue("Company", out var company)) d.Settings.Company = company;
@@ -243,9 +273,9 @@ public static class Db
     static void Write(string path, CrmData d, Dictionary<string, string>? meta = null)
     {
         using var c = Open(path);
-        Exec(c, Schema);
+        EnsureSchema(c);
         using var t = c.BeginTransaction();
-        foreach (var table in new[] { "Log", "Searches", "Imports", "Feedback", "Risks", "Stages", "Interactions", "Deals", "Clients", "Settings", "Users", "Meta" })
+        foreach (var table in new[] { "Changes", "Log", "Searches", "Imports", "Feedback", "Risks", "Stages", "Interactions", "Deals", "Clients", "Settings", "Users", "Meta" })
             Exec(c, "DELETE FROM " + table, t);
 
         Insert(c, t, "Users", new[] { "Id", "Login", "PasswordHash", "Name", "Role", "Pilot", "Active" },
@@ -265,8 +295,10 @@ public static class Db
             d.Risks.Select((x, i) => new object?[] { x.Id, i + 1, x.Title, x.Probability, x.Measure, x.Status }));
         Insert(c, t, "Feedback", new[] { "Id", "UserId", "Date", "Kind", "Rating", "Text", "Resolved" },
             d.Feedback.Select(x => new object?[] { x.Id, x.UserId, x.Date, x.Kind, x.Rating, x.Text, x.Resolved }));
-        Insert(c, t, "Imports", new[] { "Date", "FileName", "Total", "Created", "Merged", "Empty" },
-            Enumerable.Reverse(d.Imports).Select(x => new object?[] { x.Date, x.FileName, x.Total, x.Created, x.Merged, x.Empty }));
+        Insert(c, t, "Imports", new[] { "Date", "FileName", "Total", "Created", "Merged", "Empty", "Updated", "Unchanged" },
+            Enumerable.Reverse(d.Imports).Select(x => new object?[] { x.Date, x.FileName, x.Total, x.Created, x.Merged, x.Empty, x.Updated, x.Unchanged }));
+        Insert(c, t, "Changes", new[] { "Id", "Date", "UserId", "UserName", "Action", "Entity", "EntityId", "Title", "Before", "After", "Undone" },
+            d.Changes.Select(x => new object?[] { (int)x.Id, x.Date, x.UserId, x.UserName, x.Action, x.Entity, x.EntityId, x.Title, x.Before, x.After, x.Undone }));
         Insert(c, t, "Searches", new[] { "Seconds", "Date" }, d.Searches.Select(x => new object?[] { x.Seconds, x.Date }));
         Insert(c, t, "Settings", new[] { "Key", "Value" }, new[]
         {
@@ -282,6 +314,11 @@ public static class Db
     public static void Save()
     {
         Directory.CreateDirectory(DataDir);
+        // Заявки и история без клиента в базу не попадают (внешний ключ), убираем их и из памяти
+        var ids = Data.Clients.Select(x => x.Id).ToHashSet();
+        Data.Deals.RemoveAll(x => !ids.Contains(x.ClientId));
+        Data.Interactions.RemoveAll(x => !ids.Contains(x.ClientId));
+        ChangeTracker.Track();
         Write(DbPath, Data);
     }
 
@@ -331,6 +368,7 @@ public static class Db
         var me = Current?.Id;
         var info = Backups().FirstOrDefault(b => b.Path == path);
         Data = restored;
+        ChangeTracker.Reset();
         Current = Data.Users.FirstOrDefault(u => u.Id == me && u.Active);
         Log($"Восстановление из резервной копии от {info?.Date ?? File.GetLastWriteTime(path):dd.MM.yyyy HH:mm} («{info?.Label ?? Path.GetFileName(path)}»)");
         Save();
@@ -350,6 +388,7 @@ public static class Db
         Backup("Перед сбросом к демо-данным");
         var me = Current?.Login;
         Data = SeedData.Create();
+        ChangeTracker.Reset();
         Current = Data.Users.FirstOrDefault(u => u.Login == me);
         Save();
     }

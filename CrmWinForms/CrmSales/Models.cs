@@ -44,7 +44,10 @@ public class Deal
     public DateTime Created { get; set; } = DateTime.Now;
     public DateTime? Closed { get; set; }
 
+    // Вычисляемые поля не сохраняются и не попадают в журнал изменений
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool IsClosed => Status is DealStatus.Won or DealStatus.Lost;
+    [System.Text.Json.Serialization.JsonIgnore]
     public double Hours => ((Closed ?? DateTime.Now) - Created).TotalHours;
 }
 
@@ -93,8 +96,12 @@ public class ImportRecord
     public int Total { get; set; }
     public int Created { get; set; }
     public int Merged { get; set; }
+    /// <summary>Строки с ID существующего клиента, в которых изменены данные (правка через Excel).</summary>
+    public int Updated { get; set; }
+    /// <summary>Строки с ID существующего клиента без изменений.</summary>
+    public int Unchanged { get; set; }
     public int Empty { get; set; }
-    public bool NoLoss => Created + Merged + Empty == Total;
+    public bool NoLoss => Created + Merged + Updated + Unchanged + Empty == Total;
 }
 
 public class SearchMeasure
@@ -132,6 +139,28 @@ public class CrmData
     public List<SearchMeasure> Searches { get; set; } = new();
     public Settings Settings { get; set; } = new();
     public List<LogEntry> Log { get; set; } = new();
+    public List<ChangeRecord> Changes { get; set; } = new();
+}
+
+/// <summary>
+/// Запись журнала изменений: что было (Before) и что стало (After) с клиентом, заявкой или записью истории.
+/// По этим записям можно отменить действия конкретного сотрудника.
+/// </summary>
+public class ChangeRecord
+{
+    public long Id { get; set; }
+    public DateTime Date { get; set; } = DateTime.Now;
+    public string UserId { get; set; } = "";
+    public string UserName { get; set; } = "";
+    public string Action { get; set; } = "";
+    public string Entity { get; set; } = "";      // Client / Deal / Interaction
+    public string EntityId { get; set; } = "";
+    public string Title { get; set; } = "";       // название объекта для отображения
+    public string? Before { get; set; }            // null — объект был создан
+    public string? After { get; set; }             // null — объект был удалён
+    public bool Undone { get; set; }
+
+    public string Kind => Before == null ? "Создание" : After == null ? "Удаление" : "Изменение";
 }
 
 /// <summary>Русские названия для перечислений.</summary>

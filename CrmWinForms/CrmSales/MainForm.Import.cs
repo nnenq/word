@@ -15,7 +15,8 @@ public partial class MainForm
         var pick = Ui.Btn("Выбрать файл Excel или CSV…", (s, e) => PickFile(), primary: true);
         var demo = Ui.Btn("Загрузить пример файла", (s, e) => SetPlan(Importer.Demo()));
         var intro = Ui.Text("Загрузите файл, в котором отдел вёл клиентов. Система сама определит столбцы, найдёт совпадения с уже внесёнными клиентами и объединит их, " +
-                            "а после переноса сверит количество строк. Перед переносом автоматически создаётся резервная копия.", Ui.Small, Ui.Muted);
+                            "а после переноса сверит количество строк. Перед переносом автоматически создаётся резервная копия.\n" +
+                            "Чтобы изменить клиентов через Excel: выгрузите базу (меню «Файл»), исправьте данные в файле, не трогая столбец ID, и загрузите файл здесь.", Ui.Small, Ui.Muted);
         intro.MaximumSize = new Size(1150, 0);
 
         mFile = Ui.Text("Файл не выбран", Ui.Bold);
@@ -37,7 +38,7 @@ public partial class MainForm
 
         mHistory = Ui.Grid();
         mHistory.Columns.AddRange(Ui.Col("Дата", 100), Ui.Col("Файл", 170), Ui.Col("Строк", 50, true), Ui.Col("Новых", 50, true),
-            Ui.Col("Объединено", 70, true), Ui.Col("Пустых", 50, true), Ui.Col("Сверка", 90));
+            Ui.Col("Объединено", 70, true), Ui.Col("Изменено", 60, true), Ui.Col("Пустых", 50, true), Ui.Col("Сверка", 90));
 
         mDups = Ui.Grid();
         mDups.Columns.AddRange(Ui.Col("Группа", 40, true), Ui.Col("Запись", 70), Ui.Col("Клиент", 150), Ui.Col("Телефон / email / ИНН", 200), Ui.Col("Менеджер", 100));
@@ -96,10 +97,16 @@ public partial class MainForm
             mRun.Enabled = false;
             return;
         }
-        var (created, merged, empty) = Importer.Analyze(plan);
-        mPreview.Text = $"Строк в файле: {plan.Rows.Count}.  Новых клиентов: {created}.  Совпадают с базой и будут объединены: {merged}.  Строк без названия (не переносятся): {empty}.";
+        var p = Importer.Analyze(plan);
+        var text = $"Строк в файле: {plan.Rows.Count}.  Новых клиентов: {p.Created}.  Совпадают с базой и будут объединены: {p.Merged}.  " +
+                   $"Изменены в Excel: {p.Updated}.  Без изменений: {p.Unchanged}.  Строк без названия (не переносятся): {p.Empty}.";
+        if (p.Changes.Count > 0)
+            text += "\n\nБудут изменены:\n" + string.Join("\n", p.Changes.Take(8).Select(c => "• " + c)) +
+                    (p.Changes.Count > 8 ? $"\n…и ещё {p.Changes.Count - 8}" : "");
+        mPreview.Text = text;
         mPreview.ForeColor = Ui.Ink; mPreview.BackColor = Ui.OkSoft;
         mRun.Enabled = true;
+        mRun.Text = p.Updated > 0 && p.Created + p.Merged == 0 ? "Применить изменения" : "Перенести в CRM";
     }
 
     void RunImport()
@@ -108,7 +115,8 @@ public partial class MainForm
         var rec = Importer.Run(plan);
         plan = null;
         RefreshAll();
-        Ui.Info(this, $"Перенос завершён.\n\nСтрок в файле: {rec.Total}\nНовых клиентов: {rec.Created}\nОбъединено с существующими: {rec.Merged}\nПустых строк: {rec.Empty}\n\n" +
+        Ui.Info(this, $"Перенос завершён.\n\nСтрок в файле: {rec.Total}\nНовых клиентов: {rec.Created}\nОбъединено с существующими: {rec.Merged}\n" +
+                      $"Изменено через Excel: {rec.Updated}\nБез изменений: {rec.Unchanged}\nПустых строк: {rec.Empty}\n\n" +
                       (rec.NoLoss ? "Сверка: потерь нет." : "Сверка: есть расхождение, проверьте файл.") +
                       "\nРезервная копия данных до переноса сохранена.");
     }
@@ -156,8 +164,8 @@ public partial class MainForm
             mHistory.Rows.Clear();
             foreach (var h in Db.Data.Imports)
             {
-                var i = mHistory.Rows.Add(h.Date.ToString("dd.MM.yyyy HH:mm"), h.FileName, h.Total, h.Created, h.Merged, h.Empty, h.NoLoss ? "Потерь нет" : "Расхождение");
-                mHistory.Rows[i].Cells[6].Style.ForeColor = h.NoLoss ? Ui.Ok : Ui.Bad;
+                var i = mHistory.Rows.Add(h.Date.ToString("dd.MM.yyyy HH:mm"), h.FileName, h.Total, h.Created, h.Merged, h.Updated, h.Empty, h.NoLoss ? "Потерь нет" : "Расхождение");
+                mHistory.Rows[i].Cells[7].Style.ForeColor = h.NoLoss ? Ui.Ok : Ui.Bad;
             }
 
             dupGroups = Duplicates.Groups(Db.Data.Clients);

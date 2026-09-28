@@ -8,9 +8,23 @@ public static class Importer
 {
     public static readonly (string Key, string Title)[] Fields =
     {
-        ("name", "Компания / ФИО"), ("contact", "Контактное лицо"), ("phone", "Телефон"), ("email", "Email"),
+        ("id", "ID клиента в CRM"), ("name", "Компания / ФИО"), ("contact", "Контактное лицо"), ("phone", "Телефон"), ("email", "Email"),
         ("inn", "ИНН"), ("city", "Город"), ("owner", "Менеджер"), ("note", "Комментарий"), ("skip", "— не переносить —"),
     };
+
+    /// <summary>Поля клиента, которые можно изменить через Excel.</summary>
+    static readonly (string Key, string Title, Func<Client, string> Get, Action<Client, string> Set)[] Editable =
+    {
+        ("name", "Название", c => c.Name, (c, v) => c.Name = v),
+        ("contact", "Контакт", c => c.Contact, (c, v) => c.Contact = v),
+        ("phone", "Телефон", c => c.Phone, (c, v) => c.Phone = v),
+        ("email", "Email", c => c.Email, (c, v) => c.Email = v),
+        ("inn", "ИНН", c => c.Inn, (c, v) => c.Inn = v),
+        ("city", "Город", c => c.City, (c, v) => c.City = v),
+    };
+
+    /// <summary>Результат предварительной проверки файла.</summary>
+    public record Preview(int Created, int Merged, int Updated, int Unchanged, int Empty, List<string> Changes);
 
     public static string FieldTitle(string key) => Fields.First(f => f.Key == key).Title;
     public static string FieldKey(string? title) => Fields.FirstOrDefault(f => f.Title == title).Key ?? "skip";
@@ -26,7 +40,8 @@ public static class Importer
 
     public static string Guess(string header)
     {
-        var h = header.ToLowerInvariant();
+        var h = header.ToLowerInvariant().Trim();
+        if (h == "id" || h.Contains("код клиента") || h.Contains("id клиента")) return "id";
         if (h.Contains("инн")) return "inn";
         if (h.Contains("тел") || h.Contains("phone") || h.Contains("моб")) return "phone";
         if (h.Contains("mail") || h.Contains("почт")) return "email";
@@ -119,33 +134,96 @@ public static class Importer
         Inn = o.GetValueOrDefault("inn", ""), City = o.GetValueOrDefault("city", ""), Source = "Excel",
     };
 
-    /// <summary>Предварительный расчёт: сколько строк станет новыми клиентами, сколько объединится, сколько пустых.</summary>
-    public static (int Created, int Merged, int Empty) Analyze(Plan p)
+    /// <summary>Клиент, выгруженный ранее из CRM (строка файла содержит его ID).</summary>
+    static Client? ByExportId(Dictionary<string, string> o) =>
+        o.TryGetValue("id", out var id) ? Db.ClientById(id.Trim()) : null;
+
+    static User? FindManager(string? name)
     {
-        int created = 0, merged = 0, empty = 0;
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var managers = Db.Managers.Where(u => u.Active).ToList();
+        return managers.FirstOrDefault(m => m.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase))
+               ?? managers.FirstOrDefault(m => m.Name.Contains(name.Trim().Split(' ')[0], StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Сравнивает строку Excel с клиентом в базе и возвращает список отличий «поле: было → стало».
+    /// При apply = true изменения применяются к клиенту.
+    /// </summary>
+    static List<string> Differences(Plan p, Client target, Dictionary<string, string> o, bool apply)
+    {
+        var diffs = new List<string>();
+        foreach (var f in Editable)
+        {
+            if (!p.Map.Contains(f.Key)) continue;
+            var newValue = o.GetValueOrDefault(f.Key, "");
+            var oldValue = f.Get(target);
+            if (newValue == oldValue) continue;
+            diffs.Add($"{f.Title}: {(oldValue == "" ? "(пусто)" : oldValue)} → {(newValue == "" ? "(пусто)" : newValue)}");
+            if (apply) f.Set(target, newValue);
+        }
+        if (p.Map.Contains("owner") && FindManager(o.GetValueOrDefault("owner")) is { } owner && owner.Id != target.OwnerId)
+        {
+            diffs.Add($"Менеджер: {Db.UserName(target.OwnerId)} → {owner.Name}");
+            if (apply)
+            {
+                foreach (var d in Db.Data.Deals.Where(d => d.ClientId == target.Id && !d.IsClosed)) d.OwnerId = owner.Id;
+                target.OwnerId = owner.Id;
+            }
+        }
+        return diffs;
+    }
+
+    /// <summary>
+    /// Предварительный расчёт без изменения базы: новые клиенты, объединения с дублями,
+    /// изменения клиентов, выгруженных из CRM (по ID), и пустые строки.
+    /// </summary>
+    public static Preview Analyze(Plan p)
+    {
+        int created = 0, merged = 0, updated = 0, unchanged = 0, empty = 0;
+        var changes = new List<string>();
         var pool = Db.Data.Clients.ToList();
         foreach (var r in p.Rows)
         {
             var o = RowValues(p, r);
             if (!o.ContainsKey("name")) { empty++; continue; }
+            if (ByExportId(o) is { } existing)
+            {
+                var diffs = Differences(p, existing, o, apply: false);
+                if (diffs.Count == 0) unchanged++;
+                else { updated++; changes.Add($"{existing.Name}: {string.Join("; ", diffs)}"); }
+                continue;
+            }
             var c = ToClient(o);
             if (Duplicates.Find(c, pool) != null) merged++;
             else { created++; pool.Add(c); }
         }
-        return (created, merged, empty);
+        return new Preview(created, merged, updated, unchanged, empty, changes);
     }
 
     public static ImportRecord Run(Plan p)
     {
         Db.Backup($"Перед импортом «{p.FileName}»");
         var managers = Db.Managers.Where(u => u.Active).ToList();
-        int created = 0, merged = 0, empty = 0, next = 0;
+        int created = 0, merged = 0, updated = 0, unchanged = 0, empty = 0, next = 0;
         foreach (var r in p.Rows)
         {
             var o = RowValues(p, r);
             if (!o.ContainsKey("name")) { empty++; continue; }
-            var c = ToClient(o);
             var note = o.TryGetValue("note", out var n) ? ". Комментарий: " + n : "";
+
+            // Клиент был выгружен из CRM и изменён в Excel — применяем изменения
+            if (ByExportId(o) is { } existing)
+            {
+                var diffs = Differences(p, existing, o, apply: true);
+                if (diffs.Count == 0) { unchanged++; continue; }
+                existing.Updated = DateTime.Now;
+                Db.AddHistory(existing.Id, InteractionType.System, $"Изменено через Excel («{p.FileName}»): {string.Join("; ", diffs)}{note}");
+                updated++;
+                continue;
+            }
+
+            var c = ToClient(o);
             var dup = Duplicates.Find(c, Db.Data.Clients);
             if (dup != null)
             {
@@ -160,8 +238,7 @@ public static class Importer
             }
             else
             {
-                var ownerName = o.GetValueOrDefault("owner", "").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-                var owner = (ownerName == null ? null : managers.FirstOrDefault(m => m.Name.Contains(ownerName, StringComparison.OrdinalIgnoreCase)))
+                var owner = FindManager(o.GetValueOrDefault("owner"))
                             ?? (managers.Count > 0 ? managers[next++ % managers.Count] : Db.Current!);
                 c.OwnerId = owner.Id;
                 Db.Data.Clients.Add(c);
@@ -169,11 +246,14 @@ public static class Importer
                 created++;
             }
         }
-        var rec = new ImportRecord { FileName = p.FileName, Total = p.Rows.Count, Created = created, Merged = merged, Empty = empty };
+        var rec = new ImportRecord
+        {
+            FileName = p.FileName, Total = p.Rows.Count, Created = created, Merged = merged, Updated = updated, Unchanged = unchanged, Empty = empty,
+        };
         Db.Data.Imports.Insert(0, rec);
         var stage = Db.Data.Plan.FirstOrDefault(s => s.Id == "s5");
         if (stage != null) stage.Status = StageStatus.Done;
-        Db.Log($"Импорт «{p.FileName}»: строк {rec.Total}, новых {created}, объединено {merged}, пустых {empty}");
+        Db.Log($"Импорт «{p.FileName}»: строк {rec.Total}, новых {created}, объединено {merged}, изменено {updated}, без изменений {unchanged}, пустых {empty}");
         Db.Save();
         return rec;
     }
@@ -197,16 +277,19 @@ public static class Importer
     {
         using var wb = new XLWorkbook();
         var ws = wb.AddWorksheet("Клиенты");
-        string[] h1 = { "Компания", "Контактное лицо", "Телефон", "Email", "ИНН", "Город", "Источник", "Менеджер", "Создан" };
+        // Столбец ID позволяет изменить данные в Excel и загрузить файл обратно: клиент находится по ID
+        string[] h1 = { "ID", "Компания", "Контактное лицо", "Телефон", "Email", "ИНН", "Город", "Источник", "Менеджер", "Создан" };
         for (int i = 0; i < h1.Length; i++) ws.Cell(1, i + 1).Value = h1[i];
         int r = 2;
         foreach (var c in clients)
         {
-            object[] v = { c.Name, c.Contact, c.Phone, c.Email, c.Inn, c.City, c.Source, Db.UserName(c.OwnerId), c.Created.ToString("dd.MM.yyyy") };
+            object[] v = { c.Id, c.Name, c.Contact, c.Phone, c.Email, c.Inn, c.City, c.Source, Db.UserName(c.OwnerId), c.Created.ToString("dd.MM.yyyy") };
             for (int i = 0; i < v.Length; i++) ws.Cell(r, i + 1).Value = v[i]?.ToString();
             r++;
         }
         ws.Row(1).Style.Font.Bold = true;
+        ws.Column(1).Style.Font.FontColor = XLColor.Gray;
+        ws.Cell(1, 1).GetComment().AddText("Не изменяйте ID: по нему CRM находит клиента при загрузке файла обратно");
         ws.Columns().AdjustToContents();
 
         var wd = wb.AddWorksheet("Заявки");
