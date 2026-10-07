@@ -1,0 +1,93 @@
+@page
+@model Cinema.Pages.Cabinet.IndexModel
+@{ ViewData["Title"] = "Личный кабинет"; }
+
+<div class="page-head">
+    <div>
+        <h1>Личный кабинет</h1>
+        <div class="muted">@Model.Me.FullName · @Model.Me.Role.Name · на сайте с @Model.Me.CreatedAt.ToString("dd.MM.yyyy")</div>
+    </div>
+    <a class="btn btn-accent" href="/Schedule">Купить билеты</a>
+</div>
+
+<div class="stack">
+    <section>
+        <h2>Мои билеты</h2>
+        <form method="get" class="filters">
+            <label>Показать
+                <select name="show" onchange="this.form.submit()">
+                    <option value="upcoming" selected="@(Model.Show == "upcoming")">Предстоящие</option>
+                    <option value="past" selected="@(Model.Show == "past")">Прошедшие</option>
+                    <option value="returned" selected="@(Model.Show == "returned")">Возвращённые</option>
+                    <option value="all" selected="@(Model.Show == "all")">Все</option>
+                </select>
+            </label>
+            <noscript><button class="btn" type="submit">Показать</button></noscript>
+        </form>
+        @if (Model.Tickets.Count == 0)
+        {
+            <div class="panel empty">Билетов нет. Выберите сеанс в <a href="/Schedule">расписании</a>.</div>
+        }
+        <div class="tickets">
+            @foreach (var t in Model.Tickets)
+            {
+                var upcoming = t.Status == TicketStatus.Paid && t.Session.StartTime > DateTime.Now;
+                <div class="ticket">
+                    <div class="actions" style="justify-content:space-between">
+                        <span class="ticket-code">@t.Code</span>
+                        @if (t.Status == TicketStatus.Returned) { <span class="pill pill-bad">Возвращён</span> }
+                        else if (upcoming) { <span class="pill pill-ok">Действует</span> }
+                        else { <span class="pill">Сеанс прошёл</span> }
+                    </div>
+                    <b>@t.Session.Movie.Title</b>
+                    <span>@Fmt.Day(t.Session.StartTime), @t.Session.StartTime.ToString("HH:mm") · @t.Session.Hall.Name</span>
+                    <span>Ряд <b>@t.Row</b>, место <b>@t.Seat</b> · @Fmt.Money(t.Price)</span>
+                    @if (upcoming)
+                    {
+                        <form method="post" asp-page-handler="Return" asp-route-id="@t.Id" data-confirm="Вернуть билет @t.Code? Деньги вернутся на карту.">
+                            <button class="btn btn-danger btn-sm" type="submit">Вернуть билет</button>
+                        </form>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <div class="grid2">
+        <section class="panel">
+            <h2>Мои данные</h2>
+            <form method="post" asp-page-handler="Profile" class="form" novalidate>
+                <label class="field">Логин
+                    <input value="@Model.Me.Login" disabled />
+                </label>
+                <label class="field">ФИО
+                    <input asp-for="Profile.FullName" />
+                    <span asp-validation-for="Profile.FullName" class="field-error"></span>
+                </label>
+                <label class="field">Электронная почта
+                    <input asp-for="Profile.Email" type="email" />
+                    <span asp-validation-for="Profile.Email" class="field-error"></span>
+                </label>
+                <div><button class="btn btn-accent" type="submit">Сохранить</button></div>
+            </form>
+        </section>
+        <section class="panel">
+            <h2>Смена пароля</h2>
+            <form method="post" asp-page-handler="Password" class="form" novalidate>
+                <label class="field">Текущий пароль
+                    <input asp-for="Pass.Current" autocomplete="current-password" />
+                    <span asp-validation-for="Pass.Current" class="field-error"></span>
+                </label>
+                <label class="field">Новый пароль
+                    <input asp-for="Pass.New" autocomplete="new-password" />
+                    <span asp-validation-for="Pass.New" class="field-error"></span>
+                </label>
+                <label class="field">Повтор нового пароля
+                    <input asp-for="Pass.Confirm" autocomplete="new-password" />
+                    <span asp-validation-for="Pass.Confirm" class="field-error"></span>
+                </label>
+                <div><button class="btn" type="submit">Изменить пароль</button></div>
+            </form>
+        </section>
+    </div>
+</div>

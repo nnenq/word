@@ -1,0 +1,62 @@
+@page
+@model Cinema.Pages.Admin.UsersModel
+@{ ViewData["Title"] = "Пользователи"; }
+
+<div class="page-head">
+    <div><h1>Пользователи и роли</h1><div class="muted">Найдено: @Model.Users.Count</div></div>
+    <a class="btn btn-accent" href="/Admin/UserEdit">+ Добавить пользователя</a>
+</div>
+
+<form method="get" class="filters">
+    <label class="grow">Поиск: ФИО, логин, почта <input type="search" name="q" value="@Model.Q" /></label>
+    <label>Роль
+        <select name="role">
+            <option value="">Все роли</option>
+            @foreach (var r in Model.Roles) { <option value="@r.Code" selected="@(Model.Role == r.Code)">@r.Name</option> }
+        </select>
+    </label>
+    <label>Статус
+        <select name="status">
+            <option value="">Все</option>
+            <option value="active" selected="@(Model.Status == "active")">Активные</option>
+            <option value="blocked" selected="@(Model.Status == "blocked")">Заблокированные</option>
+        </select>
+    </label>
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn btn-ghost" href="/Admin/Users">Сбросить</a>
+</form>
+
+<div class="tw">
+    <table>
+        <thead><tr><th>ФИО</th><th>Логин</th><th>Почта</th><th>Роль</th><th>Статус</th><th>Создан</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var u in Model.Users)
+        {
+            var self = u.Id == User.UserId();
+            <tr>
+                <td><b>@u.FullName</b> @if (self) { <span class="pill pill-info">это вы</span> }</td>
+                <td><code>@u.Login</code></td>
+                <td>@u.Email</td>
+                <td><span class="pill @(u.Role.Code == RoleCodes.Admin ? "pill-accent" : u.Role.Code == RoleCodes.Cashier ? "pill-info" : "")">@u.Role.Name</span></td>
+                <td>@if (u.IsBlocked) { <span class="pill pill-bad">Заблокирован</span> } else { <span class="pill pill-ok">Активен</span> }</td>
+                <td class="num">@u.CreatedAt.ToString("dd.MM.yyyy")</td>
+                <td class="r">
+                    <div class="actions" style="justify-content:flex-end">
+                        <a class="btn btn-sm" href="/Admin/UserEdit/@u.Id">Изменить</a>
+                        @if (!self)
+                        {
+                            <form method="post" asp-page-handler="Block" asp-route-id="@u.Id">
+                                <button class="btn btn-sm" type="submit">@(u.IsBlocked ? "Разблокировать" : "Заблокировать")</button>
+                            </form>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@u.Id" data-confirm="Удалить пользователя @u.Login? Его билеты останутся в истории продаж.">
+                                <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                            </form>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Users.Count == 0) { <div class="empty">Пользователей не найдено.</div> }
+</div>

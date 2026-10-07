@@ -1,0 +1,63 @@
+@page
+@model Cinema.Pages.Admin.IndexModel
+@{ ViewData["Title"] = "Админ-панель"; }
+
+<div class="page-head"><div><h1>Админ-панель</h1><div class="muted">Обзор работы кинотеатра</div></div></div>
+
+<div class="kpis">
+    <div class="kpi"><small>Выручка сегодня</small><b>@Fmt.Money(Model.RevenueToday)</b></div>
+    <div class="kpi"><small>Билетов продано сегодня</small><b>@Model.SoldToday</b></div>
+    <div class="kpi"><small>Выручка за 7 дней</small><b>@Fmt.Money(Model.RevenueWeek)</b></div>
+    <div class="kpi"><small>Пользователей</small><b>@Model.UsersCount</b></div>
+</div>
+
+<div class="grid2">
+    <section class="panel">
+        <h2>Фильмы по выручке</h2>
+        <table>
+            <thead><tr><th>Фильм</th><th class="r">Билетов</th><th class="r">Выручка</th><th></th></tr></thead>
+            <tbody>
+            @{ var max = Math.Max(1, Model.TopMovies.Select(x => x.Revenue).DefaultIfEmpty(0).Max()); }
+            @foreach (var m in Model.TopMovies)
+            {
+                <tr>
+                    <td>@m.Title</td>
+                    <td class="r">@m.Count</td>
+                    <td class="r">@Fmt.Money(m.Revenue)</td>
+                    <td style="width:30%"><div class="bar"><i style="width:@(m.Revenue * 100 / max)%"></i></div></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </section>
+    <section class="panel">
+        <h2>Ближайшие сеансы</h2>
+        <table>
+            <thead><tr><th>Время</th><th>Фильм</th><th>Зал</th><th class="r">Занято</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Upcoming)
+            {
+                var sold = Model.SoldBySession.GetValueOrDefault(s.Id);
+                <tr>
+                    <td class="num">@s.StartTime.ToString("dd.MM HH:mm")</td>
+                    <td>@s.Movie.Title</td>
+                    <td>@s.Hall.Name</td>
+                    <td class="r">@sold / @s.Hall.Capacity</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<div class="panel" style="margin-top:18px">
+    <h2>Управление</h2>
+    <div class="actions">
+        <a class="btn" href="/Admin/Movies">Фильмы (@Model.MoviesCount)</a>
+        <a class="btn" href="/Admin/Genres">Жанры</a>
+        <a class="btn" href="/Admin/Halls">Залы</a>
+        <a class="btn" href="/Admin/Sessions">Сеансы</a>
+        <a class="btn" href="/Admin/Users">Пользователи и роли</a>
+        <a class="btn" href="/Cashier/Tickets">Все билеты</a>
+    </div>
+</div>

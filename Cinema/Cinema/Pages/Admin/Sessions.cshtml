@@ -1,0 +1,55 @@
+@page
+@model Cinema.Pages.Admin.SessionsModel
+@{ ViewData["Title"] = "Сеансы"; }
+
+<div class="page-head">
+    <div><h1>Сеансы</h1><div class="muted">Найдено: @Model.Sessions.Count</div></div>
+    <a class="btn btn-accent" href="/Admin/SessionEdit">+ Добавить сеанс</a>
+</div>
+
+<form method="get" class="filters">
+    <label>С даты <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" /></label>
+    <label>По дату <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" /></label>
+    <label>Фильм
+        <select name="movie">
+            <option value="">Все</option>
+            @foreach (var m in Model.Movies) { <option value="@m.Id" selected="@(Model.Movie == m.Id)">@m.Title</option> }
+        </select>
+    </label>
+    <label>Зал
+        <select name="hall">
+            <option value="">Все</option>
+            @foreach (var h in Model.Halls) { <option value="@h.Id" selected="@(Model.Hall == h.Id)">@h.Name</option> }
+        </select>
+    </label>
+    <button class="btn" type="submit">Показать</button>
+    <a class="btn btn-ghost" href="/Admin/Sessions">Сбросить</a>
+</form>
+
+<div class="tw">
+    <table>
+        <thead><tr><th>Дата и время</th><th>Фильм</th><th>Зал</th><th class="r">Цена</th><th class="r">Продано</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var s in Model.Sessions)
+        {
+            var sold = Model.Sold.GetValueOrDefault(s.Id);
+            <tr>
+                <td class="num">@s.StartTime.ToString("dd.MM.yyyy HH:mm") <span class="muted small">— @s.StartTime.AddMinutes(s.Movie.DurationMin).ToString("HH:mm")</span></td>
+                <td>@s.Movie.Title</td>
+                <td>@s.Hall.Name</td>
+                <td class="r">@Fmt.Money(s.Price)</td>
+                <td class="r">@sold / @s.Hall.Capacity</td>
+                <td class="r">
+                    <div class="actions" style="justify-content:flex-end">
+                        <a class="btn btn-sm" href="/Admin/SessionEdit/@s.Id">Изменить</a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" data-confirm="Удалить сеанс @s.StartTime.ToString("dd.MM HH:mm") «@s.Movie.Title»?">
+                            <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Sessions.Count == 0) { <div class="empty">Сеансов не найдено.</div> }
+</div>

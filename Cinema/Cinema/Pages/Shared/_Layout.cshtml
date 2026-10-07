@@ -1,0 +1,83 @@
+@using Cinema.Data
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — Кинотеатр «Звезда»</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<header class="top">
+    <div class="wrap top-row">
+        <a class="logo" href="/"><span class="logo-mark">★</span> Кинотеатр «Звезда»</a>
+        <nav class="menu">
+            <a href="/">Главная</a>
+            <a href="/Movies">Афиша</a>
+            <a href="/Schedule">Расписание</a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a href="/Cabinet">Личный кабинет</a>
+                @if (User.IsCashier())
+                {
+                    <a href="/Cashier">Касса</a>
+                    <a href="/Cashier/Tickets">Билеты</a>
+                }
+                @if (User.IsAdmin())
+                {
+                    <a href="/Admin" class="menu-admin">Админ-панель</a>
+                }
+            }
+        </nav>
+        <div class="auth">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span class="who">@User.FullName() <small>@User.RoleName()</small></span>
+                <form method="post" asp-page="/Account/Logout" class="inline">
+                    <button class="btn btn-ghost btn-sm" type="submit">Выйти</button>
+                </form>
+            }
+            else
+            {
+                <a class="btn btn-ghost btn-sm" href="/Account/Login">Войти</a>
+                <a class="btn btn-accent btn-sm" href="/Account/Register">Регистрация</a>
+            }
+        </div>
+    </div>
+</header>
+
+@if (ViewData["AdminNav"] is true)
+{
+    <div class="subnav">
+        <div class="wrap">
+            <a href="/Admin">Обзор</a>
+            <a href="/Admin/Movies">Фильмы</a>
+            <a href="/Admin/Genres">Жанры</a>
+            <a href="/Admin/Halls">Залы</a>
+            <a href="/Admin/Sessions">Сеансы</a>
+            <a href="/Admin/Users">Пользователи</a>
+            <a href="/Cashier">Касса</a>
+            <a href="/Cashier/Tickets">Билеты</a>
+        </div>
+    </div>
+}
+
+<main class="wrap main">
+    @if (TempData["Success"] is string ok)
+    {
+        <div class="alert alert-ok" role="status">@ok</div>
+    }
+    @if (TempData["Error"] is string err)
+    {
+        <div class="alert alert-bad" role="alert">@err</div>
+    }
+    @RenderBody()
+</main>
+
+<footer class="foot">
+    <div class="wrap">Кинотеатр «Звезда» · информационная система продажи билетов · индивидуальная практическая работа, вариант 13 (Кирчу Игорь)</div>
+</footer>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

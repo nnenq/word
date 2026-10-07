@@ -1,0 +1,52 @@
+@page
+@model Cinema.Pages.Movies.IndexModel
+@{ ViewData["Title"] = "Афиша"; }
+
+<div class="page-head"><h1>Афиша</h1><span class="muted">Найдено фильмов: @Model.Movies.Count</span></div>
+
+<form method="get" class="filters">
+    <label class="grow">Поиск по названию или режиссёру
+        <input type="search" name="q" value="@Model.Q" placeholder="Например, «звёздный»" />
+    </label>
+    <label>Жанр
+        <select name="genre">
+            <option value="">Все жанры</option>
+            @foreach (var g in Model.Genres)
+            {
+                <option value="@g.Id" selected="@(Model.Genre == g.Id)">@g.Name</option>
+            }
+        </select>
+    </label>
+    <label>Возраст
+        <select name="age">
+            <option value="">Любой</option>
+            @foreach (var a in Movie.AgeRatings)
+            {
+                <option value="@a" selected="@(Model.Age == a)">@a</option>
+            }
+        </select>
+    </label>
+    <label class="check" style="align-self:center;margin-top:16px">
+        <input type="checkbox" name="today" value="true" checked="@Model.Today" /> Есть сеансы сегодня
+    </label>
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn btn-ghost" href="/Movies">Сбросить</a>
+</form>
+
+@if (Model.Movies.Count == 0)
+{
+    <div class="panel empty">По вашему запросу фильмов не найдено. Измените условия поиска.</div>
+}
+<div class="movies">
+    @foreach (var m in Model.Movies)
+    {
+        <a class="movie-card" href="/Movies/Details/@m.Id">
+            <partial name="_Poster" model="m" />
+            <div class="body">
+                <b>@m.Title</b>
+                <span class="meta">@m.Genre.Name · @m.Year · @Fmt.Duration(m.DurationMin)</span>
+                <span class="meta">Режиссёр: @m.Director</span>
+            </div>
+        </a>
+    }
+</div>

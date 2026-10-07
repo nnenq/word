@@ -1,0 +1,48 @@
+@page "{id:int}"
+@model Cinema.Pages.Movies.DetailsModel
+@{ ViewData["Title"] = Model.Movie.Title; }
+
+<p><a href="/Movies">← Вся афиша</a></p>
+<div class="movie-page">
+    <partial name="_Poster" model="Model.Movie" />
+    <div>
+        <h1>@Model.Movie.Title</h1>
+        <dl class="facts">
+            <dt>Жанр</dt><dd>@Model.Movie.Genre.Name</dd>
+            <dt>Год</dt><dd>@Model.Movie.Year</dd>
+            <dt>Режиссёр</dt><dd>@Model.Movie.Director</dd>
+            <dt>Длительность</dt><dd>@Fmt.Duration(Model.Movie.DurationMin)</dd>
+            <dt>Возраст</dt><dd>@Model.Movie.AgeRating</dd>
+        </dl>
+        <p>@Model.Movie.Description</p>
+
+        <h2>Сеансы</h2>
+        @if (!Model.Movie.IsActive)
+        {
+            <div class="alert alert-info">Фильм снят с проката.</div>
+        }
+        else if (Model.Days.Count == 0)
+        {
+            <div class="alert alert-info">Ближайших сеансов нет.</div>
+        }
+        @foreach (var day in Model.Days)
+        {
+            <div class="day-block">
+                <h3>@Fmt.Day(day.Key)</h3>
+                <div class="times">
+                    @foreach (var s in day)
+                    {
+                        <a class="time" href="/Tickets/Buy/@s.Id" title="@s.Hall.Name">
+                            <b>@s.StartTime.ToString("HH:mm")</b>
+                            <span>@Fmt.Money(s.Price) · @s.Hall.Name</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+        @if (User.Identity?.IsAuthenticated != true && Model.Days.Count > 0)
+        {
+            <p class="muted small">Чтобы купить билет, <a href="/Account/Login">войдите</a> или <a href="/Account/Register">зарегистрируйтесь</a>.</p>
+        }
+    </div>
+</div>

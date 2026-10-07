@@ -1,0 +1,38 @@
+@page
+@model Cinema.Pages.Admin.GenresModel
+@{ ViewData["Title"] = "Жанры"; }
+
+<div class="page-head"><h1>Жанры</h1></div>
+<div class="grid2">
+    <div class="tw">
+        <table>
+            <thead><tr><th>Жанр</th><th class="r">Фильмов</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var g in Model.Genres)
+            {
+                <tr>
+                    <td>
+                        <form method="post" asp-page-handler="Rename" asp-route-id="@g.Id" class="actions">
+                            <input name="name" value="@g.Name" aria-label="Название жанра" style="max-width:220px" />
+                            <button class="btn btn-sm" type="submit">Переименовать</button>
+                        </form>
+                    </td>
+                    <td class="r">@g.Movies.Count</td>
+                    <td class="r">
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@g.Id" data-confirm="Удалить жанр «@g.Name»?">
+                            <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>Новый жанр</h2>
+        <form method="post" asp-page-handler="Add" class="form">
+            <label class="field">Название <input name="name" maxlength="50" required /></label>
+            <div><button class="btn btn-accent" type="submit">Добавить</button></div>
+        </form>
+    </div>
+</div>

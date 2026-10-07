@@ -1,0 +1,56 @@
+@page
+@model Cinema.Pages.Admin.MoviesModel
+@{ ViewData["Title"] = "Фильмы"; }
+
+<div class="page-head">
+    <div><h1>Фильмы</h1><div class="muted">Найдено: @Model.Movies.Count</div></div>
+    <a class="btn btn-accent" href="/Admin/MovieEdit">+ Добавить фильм</a>
+</div>
+
+<form method="get" class="filters">
+    <label class="grow">Поиск по названию или режиссёру <input type="search" name="q" value="@Model.Q" /></label>
+    <label>Жанр
+        <select name="genre">
+            <option value="">Все</option>
+            @foreach (var g in Model.Genres) { <option value="@g.Id" selected="@(Model.Genre == g.Id)">@g.Name</option> }
+        </select>
+    </label>
+    <label>Прокат
+        <select name="active">
+            <option value="">Все</option>
+            <option value="true" selected="@(Model.Active == true)">В прокате</option>
+            <option value="false" selected="@(Model.Active == false)">Сняты с проката</option>
+        </select>
+    </label>
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn btn-ghost" href="/Admin/Movies">Сбросить</a>
+</form>
+
+<div class="tw">
+    <table>
+        <thead><tr><th>Название</th><th>Жанр</th><th>Год</th><th>Длит.</th><th>Возраст</th><th class="r">Сеансов</th><th>Прокат</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var m in Model.Movies)
+        {
+            <tr>
+                <td><b>@m.Title</b><div class="muted small">@m.Director</div></td>
+                <td>@m.Genre.Name</td>
+                <td>@m.Year</td>
+                <td>@m.DurationMin мин</td>
+                <td>@m.AgeRating</td>
+                <td class="r">@m.Sessions.Count</td>
+                <td>@if (m.IsActive) { <span class="pill pill-ok">В прокате</span> } else { <span class="pill">Снят</span> }</td>
+                <td class="r">
+                    <div class="actions" style="justify-content:flex-end">
+                        <a class="btn btn-sm" href="/Admin/MovieEdit/@m.Id">Изменить</a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@m.Id" data-confirm="Удалить фильм «@m.Title»?">
+                            <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (Model.Movies.Count == 0) { <div class="empty">Фильмов не найдено.</div> }
+</div>

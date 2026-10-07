@@ -1,0 +1,40 @@
+@page "{id:int?}"
+@model Cinema.Pages.Admin.SessionEditModel
+@{ ViewData["Title"] = Model.Id == null ? "Новый сеанс" : "Изменение сеанса"; }
+
+<p><a href="/Admin/Sessions">← Сеансы</a></p>
+<div class="panel" style="max-width:620px">
+    <h1>@ViewData["Title"]</h1>
+    @if (Model.SoldCount > 0)
+    {
+        <div class="alert alert-info">На сеанс продано билетов: @Model.SoldCount. Зал и время изменить нельзя, новая цена действует для следующих продаж.</div>
+    }
+    <form method="post" class="form" novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <label class="field">Фильм
+            <select asp-for="Input.MovieId" asp-items="Model.MovieItems" disabled="@(Model.SoldCount > 0)">
+                <option value="">— выберите фильм —</option>
+            </select>
+            <span asp-validation-for="Input.MovieId" class="field-error"></span>
+        </label>
+        <label class="field">Зал
+            <select asp-for="Input.HallId" asp-items="Model.HallItems" disabled="@(Model.SoldCount > 0)">
+                <option value="">— выберите зал —</option>
+            </select>
+            <span asp-validation-for="Input.HallId" class="field-error"></span>
+        </label>
+        <label class="field">Дата и время начала
+            <input asp-for="Input.StartTime" type="datetime-local" readonly="@(Model.SoldCount > 0)" />
+            <span class="hint">Сеансы в одном зале не должны пересекаться (учитывается длительность фильма и 15 минут на уборку)</span>
+            <span asp-validation-for="Input.StartTime" class="field-error"></span>
+        </label>
+        <label class="field">Цена билета, ₽
+            <input asp-for="Input.Price" type="number" min="50" max="5000" step="10" />
+            <span asp-validation-for="Input.Price" class="field-error"></span>
+        </label>
+        <div class="actions">
+            <button class="btn btn-accent" type="submit">Сохранить</button>
+            <a class="btn btn-ghost" href="/Admin/Sessions">Отмена</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,41 @@
+@page
+@model Cinema.Pages.Account.LoginModel
+@{ ViewData["Title"] = "Вход"; }
+
+<div class="grid2" style="max-width:900px">
+    <div class="panel">
+        <h1>Вход</h1>
+        @if (!string.IsNullOrEmpty(Model.ReturnUrl) && Model.ReturnUrl != "/")
+        {
+            <div class="alert alert-info">Эта страница доступна только после входа в систему.</div>
+        }
+        <form method="post" class="form" novalidate>
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+            <label class="field">Логин
+                <input asp-for="Login" autocomplete="username" />
+                <span asp-validation-for="Login" class="field-error"></span>
+            </label>
+            <label class="field">Пароль
+                <input asp-for="Password" type="password" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="field-error"></span>
+            </label>
+            <div class="actions">
+                <button class="btn btn-accent" type="submit">Войти</button>
+                <span class="muted small">Нет аккаунта? <a href="/Account/Register">Регистрация</a></span>
+            </div>
+        </form>
+    </div>
+    <div class="panel">
+        <h2>Демо-учётные записи</h2>
+        <table>
+            <thead><tr><th>Роль</th><th>Логин</th><th>Пароль</th></tr></thead>
+            <tbody>
+                <tr><td>Администратор</td><td><code>admin</code></td><td><code>Admin123</code></td></tr>
+                <tr><td>Кассир</td><td><code>cashier</code></td><td><code>Cashier123</code></td></tr>
+                <tr><td>Зритель</td><td><code>viewer</code></td><td><code>Viewer123</code></td></tr>
+            </tbody>
+        </table>
+        <p class="muted small">Гость (без входа) может смотреть афишу и расписание.</p>
+    </div>
+</div>

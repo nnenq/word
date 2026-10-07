@@ -1,0 +1,63 @@
+@page
+@model ScheduleModel
+@{ ViewData["Title"] = "Расписание"; }
+
+<div class="page-head"><h1>Расписание сеансов</h1><span class="muted">@Fmt.Day(Model.Date) · сеансов: @Model.Sessions.Count</span></div>
+
+<form method="get" class="filters">
+    <label>Дата
+        <input type="date" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+    </label>
+    <label>Фильм
+        <select name="movie">
+            <option value="">Все фильмы</option>
+            @foreach (var m in Model.Movies)
+            {
+                <option value="@m.Id" selected="@(Model.Movie == m.Id)">@m.Title</option>
+            }
+        </select>
+    </label>
+    <label>Зал
+        <select name="hall">
+            <option value="">Все залы</option>
+            @foreach (var h in Model.Halls)
+            {
+                <option value="@h.Id" selected="@(Model.Hall == h.Id)">@h.Name</option>
+            }
+        </select>
+    </label>
+    <button class="btn" type="submit">Показать</button>
+</form>
+
+@if (Model.Sessions.Count == 0)
+{
+    <div class="panel empty">На выбранную дату сеансов нет.</div>
+}
+else
+{
+    <div class="tw">
+        <table>
+            <thead><tr><th>Время</th><th>Фильм</th><th>Возраст</th><th>Зал</th><th class="r">Цена</th><th class="r">Свободно мест</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Sessions)
+            {
+                var free = s.Hall.Capacity - Model.Sold.GetValueOrDefault(s.Id);
+                var past = s.StartTime <= DateTime.Now;
+                <tr>
+                    <td class="num"><b>@s.StartTime.ToString("HH:mm")</b></td>
+                    <td><a href="/Movies/Details/@s.MovieId">@s.Movie.Title</a> <span class="muted small">@Fmt.Duration(s.Movie.DurationMin)</span></td>
+                    <td>@s.Movie.AgeRating</td>
+                    <td>@s.Hall.Name</td>
+                    <td class="r">@Fmt.Money(s.Price)</td>
+                    <td class="r">@free из @s.Hall.Capacity</td>
+                    <td class="r">
+                        @if (past) { <span class="pill">Начался</span> }
+                        else if (free == 0) { <span class="pill pill-bad">Мест нет</span> }
+                        else { <a class="btn btn-accent btn-sm" href="/Tickets/Buy/@s.Id">Купить</a> }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

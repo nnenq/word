@@ -1,0 +1,6 @@
+@model Movie
+<div class="poster" style="--h:@Fmt.Hue(Model.Id)">
+    <span class="poster-age">@Model.AgeRating</span>
+    <span class="poster-title">@Model.Title</span>
+    <span class="poster-genre">@Model.Genre?.Name</span>
+</div>

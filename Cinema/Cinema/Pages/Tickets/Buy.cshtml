@@ -1,0 +1,74 @@
+@page "{id:int}"
+@model Cinema.Pages.Tickets.BuyModel
+@{ ViewData["Title"] = "Покупка билетов"; var s = Model.Session; var staff = User.IsStaff(); }
+
+<p><a href="/Movies/Details/@s.MovieId">← @s.Movie.Title</a></p>
+<div class="page-head">
+    <div>
+        <h1>@s.Movie.Title <span class="pill">@s.Movie.AgeRating</span></h1>
+        <div class="muted">@Fmt.Day(s.StartTime), @s.StartTime.ToString("HH:mm") · @s.Hall.Name · @Fmt.Duration(s.Movie.DurationMin) · билет @Fmt.Money(s.Price)</div>
+    </div>
+    @if (staff) { <span class="pill pill-accent">Продажа на кассе</span> }
+</div>
+
+@if (Model.Closed)
+{
+    <div class="alert alert-bad">Продажа на этот сеанс закрыта: сеанс уже начался.</div>
+}
+
+<form method="post" data-buy data-price="@s.Price" data-max="@(staff ? 0 : TicketService.MaxSeatsPerOrder)">
+    <div class="buy-layout">
+        <div class="panel">
+            <div class="screen">ЭКРАН</div>
+            <div class="hall">
+                <div class="hall-grid">
+                    @for (int r = 1; r <= s.Hall.Rows; r++)
+                    {
+                        <div class="hall-row">
+                            <span class="row-label">Ряд @r</span>
+                            @for (int p = 1; p <= s.Hall.SeatsPerRow; p++)
+                            {
+                                var key = $"{r}-{p}";
+                                var taken = Model.Taken.Contains((r, p));
+                                <label class="seat" title="@(taken ? "Занято" : $"Ряд {r}, место {p}")">
+                                    <input type="checkbox" name="Seats" value="@key" disabled="@(taken || Model.Closed)" checked="@Model.Seats.Contains(key)" />
+                                    <span>@p</span>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="legend">
+                <span><i style="background:#ddd8e6"></i>Свободно</span>
+                <span><i style="background:var(--accent)"></i>Выбрано</span>
+                <span><i style="background:#6d6779"></i>Занято</span>
+                <span>Свободно @(s.Hall.Capacity - Model.Taken.Count) из @s.Hall.Capacity</span>
+            </div>
+        </div>
+
+        <div class="panel order">
+            <h2>Ваш заказ</h2>
+            <div id="chosen" class="small">Места не выбраны</div>
+            <div class="order-total" id="total">0 ₽</div>
+            @if (staff)
+            {
+                <label class="field">ФИО покупателя
+                    <input asp-for="BuyerName" placeholder="Покупатель на кассе" />
+                </label>
+                <label class="field">Способ оплаты
+                    <select asp-for="Payment">
+                        <option>Наличные</option>
+                        <option>Карта</option>
+                    </select>
+                </label>
+            }
+            else
+            {
+                <p class="small muted">Билеты оформляются на имя <b>@User.FullName()</b> и появятся в личном кабинете. Оплата картой (демонстрационная).
+                    Можно выбрать до @TicketService.MaxSeatsPerOrder мест.</p>
+            }
+            <button id="buyBtn" class="btn btn-accent" type="submit" disabled>@(staff ? "Продать билеты" : "Оплатить")</button>
+        </div>
+    </div>
+</form>

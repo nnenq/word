@@ -1,0 +1,31 @@
+@page "{id:int?}"
+@model Cinema.Pages.Admin.HallEditModel
+@{ ViewData["Title"] = Model.Id == null ? "Новый зал" : "Изменение зала"; }
+
+<p><a href="/Admin/Halls">← Залы</a></p>
+<div class="panel" style="max-width:620px">
+    <h1>@ViewData["Title"]</h1>
+    <form method="post" class="form" novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <label class="field">Название
+            <input asp-for="Input.Name" placeholder="Зал 4 «Детский»" />
+            <span asp-validation-for="Input.Name" class="field-error"></span>
+        </label>
+        <label class="field">Количество рядов
+            <input asp-for="Input.Rows" type="number" min="1" max="30" />
+            <span asp-validation-for="Input.Rows" class="field-error"></span>
+        </label>
+        <label class="field">Мест в ряду
+            <input asp-for="Input.SeatsPerRow" type="number" min="1" max="40" />
+            <span asp-validation-for="Input.SeatsPerRow" class="field-error"></span>
+        </label>
+        <label class="field">Описание
+            <input asp-for="Input.Description" />
+            <span asp-validation-for="Input.Description" class="field-error"></span>
+        </label>
+        <div class="actions">
+            <button class="btn btn-accent" type="submit">Сохранить</button>
+            <a class="btn btn-ghost" href="/Admin/Halls">Отмена</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,81 @@
+@page
+@model Cinema.Pages.Cashier.TicketsModel
+@{ ViewData["Title"] = "Билеты"; ViewData["AdminNav"] = User.IsAdmin(); }
+
+<div class="page-head">
+    <div><h1>Проданные билеты</h1><div class="muted">Найдено: @Model.Total · показано: @Model.Tickets.Count · сумма действующих: @Fmt.Money(Model.Sum)</div></div>
+    <a class="btn" href="/Cashier">Касса</a>
+</div>
+
+<form method="get" class="filters">
+    <label class="grow">Поиск: номер билета, покупатель, фильм
+        <input type="search" name="q" value="@Model.Q" placeholder="T-000123, Петров, «Звёздный»" />
+    </label>
+    <label>Статус
+        <select name="status">
+            <option value="">Все</option>
+            <option value="paid" selected="@(Model.Status == "paid")">Действует</option>
+            <option value="returned" selected="@(Model.Status == "returned")">Возвращён</option>
+        </select>
+    </label>
+    <label>Канал
+        <select name="channel">
+            <option value="">Все</option>
+            <option selected="@(Model.Channel == "Сайт")">Сайт</option>
+            <option selected="@(Model.Channel == "Касса")">Касса</option>
+        </select>
+    </label>
+    <label>Дата сеанса <input type="date" name="date" value="@(Model.Date?.ToString("yyyy-MM-dd"))" /></label>
+    @if (Model.SessionId != null) { <input type="hidden" name="session" value="@Model.SessionId" /> }
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn btn-ghost" href="/Cashier/Tickets">Сбросить</a>
+</form>
+@if (Model.SessionId != null)
+{
+    <div class="alert alert-info">Показаны билеты одного сеанса. <a href="/Cashier/Tickets">Показать все</a></div>
+}
+
+@if (Model.Tickets.Count == 0)
+{
+    <div class="panel empty">Билетов не найдено.</div>
+}
+else
+{
+    <div class="tw">
+        <table>
+            <thead><tr><th>Номер</th><th>Сеанс</th><th>Фильм</th><th>Зал</th><th>Место</th><th class="r">Цена</th><th>Покупатель</th><th>Продажа</th><th>Статус</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var t in Model.Tickets)
+            {
+                <tr>
+                    <td class="ticket-code">@t.Code</td>
+                    <td class="num">@t.Session.StartTime.ToString("dd.MM HH:mm")</td>
+                    <td>@t.Session.Movie.Title</td>
+                    <td>@t.Session.Hall.Name</td>
+                    <td class="num">@t.Row-@t.Seat</td>
+                    <td class="r">@Fmt.Money(t.Price)</td>
+                    <td>@t.BuyerName</td>
+                    <td class="small">@t.Channel · @t.Payment<br /><span class="muted">@(t.SoldBy?.FullName ?? "онлайн") · @t.CreatedAt.ToString("dd.MM HH:mm")</span></td>
+                    <td>
+                        @if (t.Status == TicketStatus.Returned) { <span class="pill pill-bad">Возвращён</span> }
+                        else if (t.Session.StartTime <= DateTime.Now) { <span class="pill">Использован</span> }
+                        else { <span class="pill pill-ok">Действует</span> }
+                    </td>
+                    <td class="r">
+                        @if (t.Status == TicketStatus.Paid && t.Session.StartTime > DateTime.Now)
+                        {
+                            <form method="post" asp-page-handler="Return" asp-route-id="@t.Id" data-confirm="Оформить возврат билета @t.Code (@Fmt.Money(t.Price))?">
+                                <button class="btn btn-danger btn-sm" type="submit">Возврат</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Total > Model.Tickets.Count)
+    {
+        <p class="muted small">Показаны первые @Model.Tickets.Count билетов. Уточните поиск, чтобы найти нужный.</p>
+    }
+}

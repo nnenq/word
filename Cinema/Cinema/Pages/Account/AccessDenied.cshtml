@@ -1,0 +1,11 @@
+@page
+@{ ViewData["Title"] = "Доступ запрещён"; }
+<div class="panel" style="max-width:640px">
+    <h1>Доступ запрещён</h1>
+    <p>У вашей учётной записи (@User.RoleName()) нет прав на эту страницу.
+       Раздел доступен только сотрудникам с соответствующей ролью.</p>
+    <div class="actions">
+        <a class="btn" href="/">На главную</a>
+        <a class="btn btn-ghost" href="/Cabinet">Личный кабинет</a>
+    </div>
+</div>

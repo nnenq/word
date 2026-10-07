@@ -1,0 +1,50 @@
+@page "{id:int?}"
+@model Cinema.Pages.Admin.MovieEditModel
+@{ ViewData["Title"] = Model.Id == null ? "Новый фильм" : "Изменение фильма"; }
+
+<p><a href="/Admin/Movies">← Фильмы</a></p>
+<div class="panel" style="max-width:820px">
+    <h1>@ViewData["Title"]</h1>
+    <form method="post" class="form form-wide" novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors full"></div>
+        <label class="field full">Название
+            <input asp-for="Input.Title" />
+            <span asp-validation-for="Input.Title" class="field-error"></span>
+        </label>
+        <label class="field">Жанр
+            <select asp-for="Input.GenreId" asp-items="Model.GenreItems">
+                <option value="">— выберите жанр —</option>
+            </select>
+            <span asp-validation-for="Input.GenreId" class="field-error"></span>
+        </label>
+        <label class="field">Режиссёр
+            <input asp-for="Input.Director" />
+            <span asp-validation-for="Input.Director" class="field-error"></span>
+        </label>
+        <label class="field">Длительность, мин
+            <input asp-for="Input.DurationMin" type="number" min="30" max="300" />
+            <span asp-validation-for="Input.DurationMin" class="field-error"></span>
+        </label>
+        <label class="field">Год выпуска
+            <input asp-for="Input.Year" type="number" />
+            <span asp-validation-for="Input.Year" class="field-error"></span>
+        </label>
+        <label class="field">Возрастное ограничение
+            <select asp-for="Input.AgeRating">
+                @foreach (var a in Movie.AgeRatings) { <option value="@a">@a</option> }
+            </select>
+            <span asp-validation-for="Input.AgeRating" class="field-error"></span>
+        </label>
+        <label class="check" style="align-self:end">
+            <input asp-for="Input.IsActive" /> В прокате (показывать в афише)
+        </label>
+        <label class="field full">Описание
+            <textarea asp-for="Input.Description"></textarea>
+            <span asp-validation-for="Input.Description" class="field-error"></span>
+        </label>
+        <div class="actions full">
+            <button class="btn btn-accent" type="submit">Сохранить</button>
+            <a class="btn btn-ghost" href="/Admin/Movies">Отмена</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,42 @@
+@page
+@model Cinema.Pages.Account.RegisterModel
+@{ ViewData["Title"] = "Регистрация"; }
+
+<div class="panel" style="max-width:560px">
+    <h1>Регистрация</h1>
+    <p class="muted">После регистрации вы получите роль <b>«Зритель»</b>: сможете покупать билеты и видеть их в личном кабинете.
+        Роли кассира и администратора назначает администратор кинотеатра.</p>
+    <form method="post" class="form" novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <label class="field">ФИО
+            <input asp-for="Input.FullName" autocomplete="name" placeholder="Иванов Иван Иванович" />
+            <span asp-validation-for="Input.FullName" class="field-error"></span>
+        </label>
+        <label class="field">Логин
+            <input asp-for="Input.Login" autocomplete="username" placeholder="ivanov" />
+            <span class="hint">Латинские буквы, цифры и «_», от 3 до 20 символов</span>
+            <span asp-validation-for="Input.Login" class="field-error"></span>
+        </label>
+        <label class="field">Электронная почта
+            <input asp-for="Input.Email" type="email" autocomplete="email" placeholder="name@mail.ru" />
+            <span asp-validation-for="Input.Email" class="field-error"></span>
+        </label>
+        <label class="field">Роль
+            <select disabled><option>Зритель</option></select>
+            <span class="hint">Назначается автоматически при регистрации</span>
+        </label>
+        <label class="field">Пароль
+            <input asp-for="Input.Password" autocomplete="new-password" />
+            <span class="hint">Не короче 6 символов, буквы и цифры</span>
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+        </label>
+        <label class="field">Повтор пароля
+            <input asp-for="Input.Confirm" autocomplete="new-password" />
+            <span asp-validation-for="Input.Confirm" class="field-error"></span>
+        </label>
+        <div class="actions">
+            <button class="btn btn-accent" type="submit">Зарегистрироваться</button>
+            <span class="muted small">Уже есть аккаунт? <a href="/Account/Login">Войти</a></span>
+        </div>
+    </form>
+</div>

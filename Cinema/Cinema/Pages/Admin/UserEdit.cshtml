@@ -1,0 +1,44 @@
+@page "{id:int?}"
+@model Cinema.Pages.Admin.UserEditModel
+@{ ViewData["Title"] = Model.Id == null ? "Новый пользователь" : "Изменение пользователя"; }
+
+<p><a href="/Admin/Users">← Пользователи</a></p>
+<div class="panel" style="max-width:620px">
+    <h1>@ViewData["Title"]</h1>
+    <form method="post" class="form" novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <label class="field">ФИО
+            <input asp-for="Input.FullName" />
+            <span asp-validation-for="Input.FullName" class="field-error"></span>
+        </label>
+        <label class="field">Логин
+            <input asp-for="Input.Login" readonly="@(Model.Id != null)" />
+            @if (Model.Id != null) { <span class="hint">Логин после создания не меняется</span> }
+            <span asp-validation-for="Input.Login" class="field-error"></span>
+        </label>
+        <label class="field">Электронная почта
+            <input asp-for="Input.Email" type="email" />
+            <span asp-validation-for="Input.Email" class="field-error"></span>
+        </label>
+        <label class="field">Роль
+            <select asp-for="Input.RoleCode" disabled="@Model.IsSelf">
+                @foreach (var r in Model.Roles) { <option value="@r.Code">@r.Name</option> }
+            </select>
+            @if (Model.IsSelf) { <span class="hint">Свою роль изменить нельзя</span> }
+            <span asp-validation-for="Input.RoleCode" class="field-error"></span>
+        </label>
+        <label class="field">@(Model.Id == null ? "Пароль" : "Новый пароль")
+            <input asp-for="Input.Password" type="password" autocomplete="new-password" />
+            <span class="hint">@(Model.Id == null ? "Не короче 6 символов, буквы и цифры" : "Оставьте пустым, чтобы не менять")</span>
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+        </label>
+        @if (!Model.IsSelf)
+        {
+            <label class="check"><input asp-for="Input.IsBlocked" /> Заблокирован (не может войти в систему)</label>
+        }
+        <div class="actions">
+            <button class="btn btn-accent" type="submit">Сохранить</button>
+            <a class="btn btn-ghost" href="/Admin/Users">Отмена</a>
+        </div>
+    </form>
+</div>

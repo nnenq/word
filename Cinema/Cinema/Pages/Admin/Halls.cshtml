@@ -1,0 +1,34 @@
+@page
+@model Cinema.Pages.Admin.HallsModel
+@{ ViewData["Title"] = "Залы"; }
+
+<div class="page-head">
+    <h1>Залы</h1>
+    <a class="btn btn-accent" href="/Admin/HallEdit">+ Добавить зал</a>
+</div>
+<div class="tw">
+    <table>
+        <thead><tr><th>Зал</th><th class="r">Рядов</th><th class="r">Мест в ряду</th><th class="r">Вместимость</th><th class="r">Сеансов</th><th>Описание</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var h in Model.Halls)
+        {
+            <tr>
+                <td><b>@h.Name</b></td>
+                <td class="r">@h.Rows</td>
+                <td class="r">@h.SeatsPerRow</td>
+                <td class="r">@h.Capacity</td>
+                <td class="r">@h.Sessions.Count</td>
+                <td class="muted">@h.Description</td>
+                <td class="r">
+                    <div class="actions" style="justify-content:flex-end">
+                        <a class="btn btn-sm" href="/Admin/HallEdit/@h.Id">Изменить</a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@h.Id" data-confirm="Удалить зал «@h.Name»?">
+                            <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

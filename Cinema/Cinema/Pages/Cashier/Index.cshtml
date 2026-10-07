@@ -1,0 +1,53 @@
+@page
+@model Cinema.Pages.Cashier.IndexModel
+@{ ViewData["Title"] = "Касса"; ViewData["AdminNav"] = User.IsAdmin(); }
+
+<div class="page-head">
+    <div><h1>Касса</h1><div class="muted">Продажа билетов посетителям кинотеатра</div></div>
+    <a class="btn" href="/Cashier/Tickets">Проданные билеты и возврат</a>
+</div>
+
+<div class="kpis">
+    <div class="kpi"><small>Продано мной сегодня</small><b>@Model.MySoldToday</b></div>
+    <div class="kpi"><small>Выручка кассы сегодня</small><b>@Fmt.Money(Model.MyRevenueToday)</b></div>
+    <div class="kpi"><small>Сеансов на дату</small><b>@Model.Sessions.Count</b></div>
+    <div class="kpi"><small>Свободных мест</small><b>@Model.Sessions.Sum(s => s.Hall.Capacity - Model.Sold.GetValueOrDefault(s.Id))</b></div>
+</div>
+
+<form method="get" class="filters">
+    <label>Дата <input type="date" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" /></label>
+    <label class="grow">Фильм <input type="search" name="q" value="@Model.Q" placeholder="Название фильма" /></label>
+    <button class="btn" type="submit">Показать</button>
+</form>
+
+@if (Model.Sessions.Count == 0)
+{
+    <div class="panel empty">На выбранную дату сеансов нет.</div>
+}
+else
+{
+    <div class="tw">
+        <table>
+            <thead><tr><th>Время</th><th>Фильм</th><th>Зал</th><th class="r">Цена</th><th>Заполненность</th><th class="r">Свободно</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Sessions)
+            {
+                var sold = Model.Sold.GetValueOrDefault(s.Id);
+                var pct = s.Hall.Capacity == 0 ? 0 : sold * 100 / s.Hall.Capacity;
+                <tr>
+                    <td class="num"><b>@s.StartTime.ToString("HH:mm")</b></td>
+                    <td>@s.Movie.Title <span class="muted small">@s.Movie.AgeRating</span></td>
+                    <td>@s.Hall.Name</td>
+                    <td class="r">@Fmt.Money(s.Price)</td>
+                    <td><div class="bar" title="@pct %"><i style="width:@pct%"></i></div></td>
+                    <td class="r">@(s.Hall.Capacity - sold)</td>
+                    <td class="r">
+                        @if (s.StartTime <= DateTime.Now) { <span class="pill">Начался</span> }
+                        else { <a class="btn btn-accent btn-sm" href="/Tickets/Buy/@s.Id">Продать</a> }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
