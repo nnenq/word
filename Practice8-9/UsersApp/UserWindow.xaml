@@ -1,0 +1,17 @@
+<Window x:Class="UsersApp.UserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Личный кабинет" Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen">
+    <StackPanel Margin="28,20,28,22">
+        <TextBlock x:Name="hello" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="Вы успешно вошли в систему. Ваши данные из базы данных:" Foreground="#666" Margin="0,4,0,12" TextWrapping="Wrap" />
+        <Grid x:Name="info">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+        </Grid>
+        <Button Content="ВЫЙТИ" Style="{StaticResource Primary}" Margin="0,18,0,0" Click="Logout_Click" />
+    </StackPanel>
+</Window>

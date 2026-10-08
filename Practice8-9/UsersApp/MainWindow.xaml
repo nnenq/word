@@ -1,0 +1,86 @@
+<Window x:Class="UsersApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Регистрация пользователя" Width="640" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" Loaded="Window_Loaded">
+    <Grid Margin="24,16,24,20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Персональная информация -->
+        <StackPanel Grid.Row="0" Grid.Column="0">
+            <TextBlock Text="Персональная информация" Style="{StaticResource Section}" Margin="0,0,0,4" />
+            <TextBlock Text="Фамилия" Style="{StaticResource Label}" />
+            <TextBox x:Name="lName" />
+            <TextBlock x:Name="errФамилия" Style="{StaticResource Error}" />
+            <TextBlock Text="Имя" Style="{StaticResource Label}" />
+            <TextBox x:Name="name" />
+            <TextBlock x:Name="errИмя" Style="{StaticResource Error}" />
+            <TextBlock Text="E-mail (логин)" Style="{StaticResource Label}" />
+            <TextBox x:Name="eMail" />
+            <TextBlock x:Name="errЭлектроннаяПочта" Style="{StaticResource Error}" />
+            <TextBlock Text="Пароль" Style="{StaticResource Label}" />
+            <PasswordBox x:Name="passw" PasswordChanged="Passw_PasswordChanged" />
+            <TextBlock x:Name="errПароль" Style="{StaticResource Error}" />
+            <TextBlock Text="Повторить пароль" Style="{StaticResource Label}" />
+            <PasswordBox x:Name="passw2" />
+            <TextBlock x:Name="errПовторПароля" Style="{StaticResource Error}" />
+        </StackPanel>
+
+        <!-- Подсказки справа, как в методичке -->
+        <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,30,0,0">
+            <TextBlock Text="Фамилия и имя — только буквы, можно дефис." Foreground="#666" TextWrapping="Wrap" />
+            <TextBlock Text="E-mail будет вашим логином для входа." Foreground="#666" TextWrapping="Wrap" Margin="0,30,0,0" />
+            <Border BorderBrush="{StaticResource Accent}" BorderThickness="1" Padding="8,6" Margin="0,30,0,0">
+                <TextBlock Text="Минимальная длина пароля 6 символов" />
+            </Border>
+        </StackPanel>
+
+        <!-- Кодовое слово и условия пароля -->
+        <StackPanel Grid.Row="1" Grid.Column="0">
+            <TextBlock Text="Кодовое слово" Style="{StaticResource Section}" />
+            <TextBlock Text="Кодовое слово (одно слово)" Style="{StaticResource Label}" />
+            <TextBox x:Name="word" />
+            <TextBlock x:Name="errКодовоеСлово" Style="{StaticResource Error}" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,14,0,0">
+            <TextBlock Text="Условия пароля" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <ItemsControl x:Name="conditions">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}" Margin="0,1" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Секретный вопрос -->
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3">
+            <TextBlock Text="Секретный вопрос для восстановления пароля" Style="{StaticResource Section}" />
+        </StackPanel>
+        <StackPanel Grid.Row="3" Grid.Column="0">
+            <TextBlock Text="Секретный вопрос" Style="{StaticResource Label}" Margin="0,0,0,3" />
+            <ComboBox x:Name="qwest" />
+            <TextBlock x:Name="errСекретныйВопрос" Style="{StaticResource Error}" />
+            <TextBlock Text="Ответ на вопрос" Style="{StaticResource Label}" />
+            <TextBox x:Name="otvet" />
+            <TextBlock x:Name="errОтвет" Style="{StaticResource Error}" />
+            <CheckBox x:Name="agree" Content="Согласен с условиями обработки персональных данных" Margin="0,12,0,0"
+                      Checked="Agree_Changed" Unchecked="Agree_Changed" />
+            <TextBlock x:Name="errСогласие" Style="{StaticResource Error}" />
+            <Button x:Name="SignIn" Content="ДАЛЕЕ" Style="{StaticResource Primary}" Margin="0,14,0,0"
+                    IsEnabled="False" IsDefault="True" Click="SignIn_Click" />
+        </StackPanel>
+        <TextBlock x:Name="dbError" Grid.Row="4" Grid.ColumnSpan="3" Style="{StaticResource Error}" Margin="0,10,0,0" />
+    </Grid>
+</Window>
