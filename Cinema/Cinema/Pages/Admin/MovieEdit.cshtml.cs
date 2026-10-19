@@ -33,11 +33,18 @@ public class MovieInput
 
 public class MovieEditModel : AppPage
 {
+    static readonly string[] PosterTypes = { ".jpg", ".jpeg", ".png", ".webp" };
+    const long MaxPosterBytes = 5 * 1024 * 1024;
+
     readonly CinemaDb db;
-    public MovieEditModel(CinemaDb db) => this.db = db;
+    readonly IWebHostEnvironment env;
+    public MovieEditModel(CinemaDb db, IWebHostEnvironment env) { this.db = db; this.env = env; }
 
     public int? Id { get; set; }
+    public string? CurrentPoster { get; set; }
     [BindProperty] public MovieInput Input { get; set; } = new();
+    [BindProperty] public IFormFile? PosterFile { get; set; }
+    [BindProperty] public bool RemovePoster { get; set; }
     public List<SelectListItem> GenreItems { get; set; } = new();
 
     async Task LoadGenresAsync() =>
@@ -50,6 +57,7 @@ public class MovieEditModel : AppPage
         if (id == null) { Input.Year = DateTime.Today.Year; return Page(); }
         var m = await db.Movies.FindAsync(id);
         if (m == null) return NotFound();
+        CurrentPoster = m.Poster;
         Input = new MovieInput
         {
             Title = m.Title, GenreId = m.GenreId, Director = m.Director, DurationMin = m.DurationMin, Year = m.Year,
@@ -68,7 +76,17 @@ public class MovieEditModel : AppPage
             ModelState.AddModelError("Input.AgeRating", "Выберите возрастное ограничение из списка.");
         if (Input.GenreId is int g && !await db.Genres.AnyAsync(x => x.Id == g))
             ModelState.AddModelError("Input.GenreId", "Такого жанра нет.");
-        if (!ModelState.IsValid) { await LoadGenresAsync(); return Page(); }
+        string? ext = Path.GetExtension(PosterFile?.FileName ?? "").ToLowerInvariant();
+        if (PosterFile != null && !PosterTypes.Contains(ext))
+            ModelState.AddModelError(nameof(PosterFile), "Постер — картинка в формате JPG, PNG или WEBP.");
+        else if (PosterFile != null && PosterFile.Length > MaxPosterBytes)
+            ModelState.AddModelError(nameof(PosterFile), "Файл постера — не больше 5 МБ.");
+        if (!ModelState.IsValid)
+        {
+            await LoadGenresAsync();
+            if (id != null) CurrentPoster = (await db.Movies.FindAsync(id))?.Poster;
+            return Page();
+        }
 
         Movie m;
         if (id == null) { m = new Movie(); db.Movies.Add(m); }
@@ -86,6 +104,17 @@ public class MovieEditModel : AppPage
         m.AgeRating = Input.AgeRating;
         m.IsActive = Input.IsActive;
         m.Description = Input.Description?.Trim() ?? "";
+        if (PosterFile != null)
+        {
+            // Загруженные постеры хранятся в wwwroot/posters/uploads под случайным именем
+            var dir = Path.Combine(env.WebRootPath, "posters", "uploads");
+            Directory.CreateDirectory(dir);
+            var name = Guid.NewGuid().ToString("N") + ext;
+            await using (var fs = System.IO.File.Create(Path.Combine(dir, name)))
+                await PosterFile.CopyToAsync(fs);
+            m.Poster = "/posters/uploads/" + name;
+        }
+        else if (RemovePoster) m.Poster = null;
         await db.SaveChangesAsync();
         Success(id == null ? $"Фильм «{m.Title}» добавлен." : $"Изменения фильма «{m.Title}» сохранены.");
         return Redirect("/Admin/Movies");

@@ -40,7 +40,7 @@
                 <td class="r">@Fmt.Money(s.Price)</td>
                 <td class="r">@sold / @s.Hall.Capacity</td>
                 <td class="r">
-                    <div class="actions" style="justify-content:flex-end">
+                    <div class="actions end">
                         <a class="btn btn-sm" href="/Admin/SessionEdit/@s.Id">Изменить</a>
                         <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" data-confirm="Удалить сеанс @s.StartTime.ToString("dd.MM HH:mm") «@s.Movie.Title»?">
                             <button class="btn btn-danger btn-sm" type="submit">Удалить</button>

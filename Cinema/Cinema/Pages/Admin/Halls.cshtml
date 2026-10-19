@@ -20,7 +20,7 @@
                 <td class="r">@h.Sessions.Count</td>
                 <td class="muted">@h.Description</td>
                 <td class="r">
-                    <div class="actions" style="justify-content:flex-end">
+                    <div class="actions end">
                         <a class="btn btn-sm" href="/Admin/HallEdit/@h.Id">Изменить</a>
                         <form method="post" asp-page-handler="Delete" asp-route-id="@h.Id" data-confirm="Удалить зал «@h.Name»?">
                             <button class="btn btn-danger btn-sm" type="submit">Удалить</button>

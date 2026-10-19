@@ -41,7 +41,7 @@
                 <td>@if (u.IsBlocked) { <span class="pill pill-bad">Заблокирован</span> } else { <span class="pill pill-ok">Активен</span> }</td>
                 <td class="num">@u.CreatedAt.ToString("dd.MM.yyyy")</td>
                 <td class="r">
-                    <div class="actions" style="justify-content:flex-end">
+                    <div class="actions end">
                         <a class="btn btn-sm" href="/Admin/UserEdit/@u.Id">Изменить</a>
                         @if (!self)
                         {

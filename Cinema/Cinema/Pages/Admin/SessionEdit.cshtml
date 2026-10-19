@@ -2,7 +2,7 @@
 @model Cinema.Pages.Admin.SessionEditModel
 @{ ViewData["Title"] = Model.Id == null ? "Новый сеанс" : "Изменение сеанса"; }
 
-<p><a href="/Admin/Sessions">← Сеансы</a></p>
+<a class="back" href="/Admin/Sessions">Сеансы</a>
 <div class="panel" style="max-width:620px">
     <h1>@ViewData["Title"]</h1>
     @if (Model.SoldCount > 0)

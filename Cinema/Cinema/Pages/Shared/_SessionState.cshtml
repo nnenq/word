@@ -1,0 +1,10 @@
+@model Session
+@* Состояние начавшегося сеанса: идёт сейчас или уже закончился. Билеты на него не продаются. *@
+@if (Model.StartTime.AddMinutes(Model.Movie.DurationMin) > DateTime.Now)
+{
+    <span class="pill pill-live">Идёт</span>
+}
+else
+{
+    <span class="pill">Завершён</span>
+}

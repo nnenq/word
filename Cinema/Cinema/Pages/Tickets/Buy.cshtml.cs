@@ -14,7 +14,10 @@ public class BuyModel : AppPage
 
     public Session Session { get; set; } = null!;
     public HashSet<(int Row, int Seat)> Taken { get; set; } = new();
+    /// <summary>Сеанс уже начался (идёт или закончился) — продажа закрыта.</summary>
     public bool Closed { get; set; }
+    /// <summary>Сеанс идёт прямо сейчас.</summary>
+    public bool Running { get; set; }
 
     [BindProperty] public List<string> Seats { get; set; } = new();
     [BindProperty] public string BuyerName { get; set; } = "";
@@ -27,6 +30,7 @@ public class BuyModel : AppPage
         Session = s;
         Taken = await tickets.TakenSeatsAsync(id);
         Closed = s.StartTime <= DateTime.Now;
+        Running = Closed && s.StartTime.AddMinutes(s.Movie.DurationMin) > DateTime.Now;
         return true;
     }
 
@@ -35,6 +39,11 @@ public class BuyModel : AppPage
     public async Task<IActionResult> OnPostAsync(int id)
     {
         if (!await LoadAsync(id)) return NotFound();
+        if (Closed)
+        {
+            TempData["Error"] = "Продажа на этот сеанс закрыта: сеанс уже начался.";
+            return Page();
+        }
         var me = await db.Users.FirstAsync(u => u.Id == User.UserId());
         bool staff = User.IsStaff();
 

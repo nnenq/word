@@ -2,7 +2,7 @@
 @model IndexModel
 @{ ViewData["Title"] = "Главная"; }
 
-<section class="hero">
+<section class="hero" style="--cover:url('/img/hall.jpg')">
     <div>
         <h1>Билеты в кино — онлайн и на кассе</h1>
         <p>Информационная система кинотеатра «Звезда» автоматизирует работу с фильмами, сеансами и продажей билетов.
@@ -16,12 +16,12 @@
             }
         </div>
     </div>
-    <div>
+    <div class="hero-stats">
         <h3>Сегодня в кинотеатре</h3>
         <ul>
             <li>Фильмов в прокате: <b>@Model.MoviesCount</b></li>
             <li>Сеансов сегодня: <b>@Model.SessionsToday</b></li>
-            <li>Ближайший сеанс: <b>@(Model.Next == null ? "—" : $"{Model.Next.StartTime:HH:mm}, «{Model.Next.Movie.Title}»")</b></li>
+            <li>Ближайший сеанс: <b>@(Model.Next == null ? "—" : $"{(Model.Next.StartTime.Date == DateTime.Today ? "" : Fmt.Day(Model.Next.StartTime).ToLower() + ", ")}{Model.Next.StartTime:HH:mm}, «{Model.Next.Movie.Title}»")</b></li>
             <li>Залов: <b>@Model.HallsCount</b></li>
         </ul>
     </div>
@@ -33,14 +33,14 @@
     <div class="panel feature"><h3>Кассир и администратор</h3><p>Кассир продаёт и возвращает билеты на кассе. Администратор управляет фильмами, залами, сеансами и пользователями.</p></div>
 </section>
 
-<div class="page-head"><h2>Сейчас в прокате</h2><a href="/Movies">Вся афиша →</a></div>
+<div class="page-head"><h2>Сейчас в прокате</h2><a class="link-more" href="/Movies">Вся афиша</a></div>
 <div class="movies">
     @foreach (var m in Model.Movies)
     {
         <a class="movie-card" href="/Movies/Details/@m.Id">
             <partial name="_Poster" model="m" />
             <div class="body">
-                <b>@m.Title</b>
+                <b class="title">@m.Title</b>
                 <span class="meta">@m.Genre.Name · @Fmt.Duration(m.DurationMin)</span>
             </div>
         </a>

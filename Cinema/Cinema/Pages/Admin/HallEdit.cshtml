@@ -2,7 +2,7 @@
 @model Cinema.Pages.Admin.HallEditModel
 @{ ViewData["Title"] = Model.Id == null ? "Новый зал" : "Изменение зала"; }
 
-<p><a href="/Admin/Halls">← Залы</a></p>
+<a class="back" href="/Admin/Halls">Залы</a>
 <div class="panel" style="max-width:620px">
     <h1>@ViewData["Title"]</h1>
     <form method="post" class="form" novalidate>

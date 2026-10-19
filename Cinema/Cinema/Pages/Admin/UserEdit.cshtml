@@ -2,7 +2,7 @@
 @model Cinema.Pages.Admin.UserEditModel
 @{ ViewData["Title"] = Model.Id == null ? "Новый пользователь" : "Изменение пользователя"; }
 
-<p><a href="/Admin/Users">← Пользователи</a></p>
+<a class="back" href="/Admin/Users">Пользователи</a>
 <div class="panel" style="max-width:620px">
     <h1>@ViewData["Title"]</h1>
     <form method="post" class="form" novalidate>

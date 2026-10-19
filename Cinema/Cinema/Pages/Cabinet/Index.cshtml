@@ -33,7 +33,7 @@
             {
                 var upcoming = t.Status == TicketStatus.Paid && t.Session.StartTime > DateTime.Now;
                 <div class="ticket">
-                    <div class="actions" style="justify-content:space-between">
+                    <div class="actions spread">
                         <span class="ticket-code">@t.Code</span>
                         @if (t.Status == TicketStatus.Returned) { <span class="pill pill-bad">Возвращён</span> }
                         else if (upcoming) { <span class="pill pill-ok">Действует</span> }

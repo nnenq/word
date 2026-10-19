@@ -34,7 +34,7 @@ else
             {
                 var sold = Model.Sold.GetValueOrDefault(s.Id);
                 var pct = s.Hall.Capacity == 0 ? 0 : sold * 100 / s.Hall.Capacity;
-                <tr>
+                <tr class="@(s.StartTime <= DateTime.Now ? "row-past" : "")">
                     <td class="num"><b>@s.StartTime.ToString("HH:mm")</b></td>
                     <td>@s.Movie.Title <span class="muted small">@s.Movie.AgeRating</span></td>
                     <td>@s.Hall.Name</td>
@@ -42,7 +42,7 @@ else
                     <td><div class="bar" title="@pct %"><i style="width:@pct%"></i></div></td>
                     <td class="r">@(s.Hall.Capacity - sold)</td>
                     <td class="r">
-                        @if (s.StartTime <= DateTime.Now) { <span class="pill">Начался</span> }
+                        @if (s.StartTime <= DateTime.Now) { <partial name="_SessionState" model="s" /> }
                         else { <a class="btn btn-accent btn-sm" href="/Tickets/Buy/@s.Id">Продать</a> }
                     </td>
                 </tr>

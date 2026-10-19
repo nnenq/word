@@ -64,6 +64,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CinemaDb>();
     db.Database.EnsureCreated();
     Seed.Run(db, scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>());
+    Seed.Upgrade(db);
 }
 
 var ru = new CultureInfo("ru-RU");

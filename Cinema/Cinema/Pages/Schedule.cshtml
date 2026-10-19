@@ -43,7 +43,7 @@ else
             {
                 var free = s.Hall.Capacity - Model.Sold.GetValueOrDefault(s.Id);
                 var past = s.StartTime <= DateTime.Now;
-                <tr>
+                <tr class="@(past ? "row-past" : "")">
                     <td class="num"><b>@s.StartTime.ToString("HH:mm")</b></td>
                     <td><a href="/Movies/Details/@s.MovieId">@s.Movie.Title</a> <span class="muted small">@Fmt.Duration(s.Movie.DurationMin)</span></td>
                     <td>@s.Movie.AgeRating</td>
@@ -51,7 +51,7 @@ else
                     <td class="r">@Fmt.Money(s.Price)</td>
                     <td class="r">@free из @s.Hall.Capacity</td>
                     <td class="r">
-                        @if (past) { <span class="pill">Начался</span> }
+                        @if (past) { <partial name="_SessionState" model="s" /> }
                         else if (free == 0) { <span class="pill pill-bad">Мест нет</span> }
                         else { <a class="btn btn-accent btn-sm" href="/Tickets/Buy/@s.Id">Купить</a> }
                     </td>

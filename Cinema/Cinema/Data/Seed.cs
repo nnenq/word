@@ -1,5 +1,6 @@
 using Cinema.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Cinema.Data;
 
@@ -36,21 +37,21 @@ public static class Seed
 
         var movies = new[]
         {
-            new Movie { Title = "Звёздный рубеж", Genre = g["Фантастика"], DurationMin = 142, AgeRating = "12+", Year = 2026, Director = "А. Вершинин",
+            new Movie { Title = "Звёздный рубеж", Poster = "/posters/star.jpg", Genre = g["Фантастика"], DurationMin = 142, AgeRating = "12+", Year = 2026, Director = "А. Вершинин",
                 Description = "Экипаж исследовательского корабля получает сигнал с края Солнечной системы и отправляется навстречу неизвестности." },
-            new Movie { Title = "Бабушка на связи", Genre = g["Комедия"], DurationMin = 98, AgeRating = "6+", Year = 2026, Director = "Е. Котова",
+            new Movie { Title = "Бабушка на связи", Poster = "/posters/grandma.jpg", Genre = g["Комедия"], DurationMin = 98, AgeRating = "6+", Year = 2026, Director = "Е. Котова",
                 Description = "Бабушка осваивает смартфон и случайно становится звездой соцсетей. Семейная комедия для всех возрастов." },
-            new Movie { Title = "Тихий берег", Genre = g["Драма"], DurationMin = 117, AgeRating = "16+", Year = 2025, Director = "М. Лаврентьев",
+            new Movie { Title = "Тихий берег", Poster = "/posters/shore.jpg", Genre = g["Драма"], DurationMin = 117, AgeRating = "16+", Year = 2025, Director = "М. Лаврентьев",
                 Description = "История возвращения в родной приморский посёлок и попытки исправить ошибки прошлого." },
-            new Movie { Title = "Котёнок Тим и большой город", Genre = g["Мультфильм"], DurationMin = 85, AgeRating = "0+", Year = 2026, Director = "О. Рябова",
+            new Movie { Title = "Котёнок Тим и большой город", Poster = "/posters/kitten.jpg", Genre = g["Мультфильм"], DurationMin = 85, AgeRating = "0+", Year = 2026, Director = "О. Рябова",
                 Description = "Любопытный котёнок теряется в мегаполисе и находит новых друзей на пути домой." },
-            new Movie { Title = "Последний рубеж", Genre = g["Боевик"], DurationMin = 128, AgeRating = "18+", Year = 2026, Director = "Д. Громов",
+            new Movie { Title = "Последний рубеж", Poster = "/posters/action.jpg", Genre = g["Боевик"], DurationMin = 128, AgeRating = "18+", Year = 2026, Director = "Д. Громов",
                 Description = "Бывший спецназовец берётся за последнее задание, которое оказывается ловушкой." },
-            new Movie { Title = "Дом на холме", Genre = g["Ужасы"], DurationMin = 104, AgeRating = "18+", Year = 2025, Director = "С. Орлов",
+            new Movie { Title = "Дом на холме", Poster = "/posters/house.jpg", Genre = g["Ужасы"], DurationMin = 104, AgeRating = "18+", Year = 2025, Director = "С. Орлов",
                 Description = "Семья переезжает в старинный особняк, где по ночам происходят необъяснимые вещи." },
-            new Movie { Title = "Тайна северного маяка", Genre = g["Приключения"], DurationMin = 111, AgeRating = "12+", Year = 2026, Director = "И. Белова",
+            new Movie { Title = "Тайна северного маяка", Poster = "/posters/lighthouse.jpg", Genre = g["Приключения"], DurationMin = 111, AgeRating = "12+", Year = 2026, Director = "И. Белова",
                 Description = "Трое школьников раскрывают загадку заброшенного маяка и находят старинную карту." },
-            new Movie { Title = "Старый фильм", Genre = g["Драма"], DurationMin = 95, AgeRating = "12+", Year = 2020, Director = "Н. Петров",
+            new Movie { Title = "Старый фильм", Poster = "/posters/old.jpg", Genre = g["Драма"], DurationMin = 95, AgeRating = "12+", Year = 2020, Director = "Н. Петров",
                 Description = "Фильм снят с проката и не показывается в афише.", IsActive = false },
         };
         db.Movies.AddRange(movies);
@@ -65,21 +66,7 @@ public static class Seed
 
         // Сеансы на 7 дней: в каждом зале по 4 показа в день
         var rnd = new Random(13);
-        var sessions = new List<Session>();
-        int[] startHours = { 10, 13, 16, 19 };
-        var active = movies.Where(m => m.IsActive).ToArray();
-        for (int day = 0; day < 7; day++)
-            for (int h = 0; h < halls.Length; h++)
-                for (int k = 0; k < startHours.Length; k++)
-                {
-                    var movie = active[(day + h * 2 + k) % active.Length];
-                    int basePrice = h == 2 ? 600 : h == 1 ? 350 : 400;
-                    sessions.Add(new Session
-                    {
-                        Movie = movie, Hall = halls[h], StartTime = DateTime.Today.AddDays(day).AddHours(startHours[k] + h * 0.25),
-                        Price = basePrice + (startHours[k] >= 19 ? 100 : 0),
-                    });
-                }
+        var sessions = MakeSessions(movies.Where(m => m.IsActive).ToArray(), halls, DateTime.Today, 7);
         db.Sessions.AddRange(sessions);
 
         // Проданные билеты: часть через сайт (зрители), часть на кассе
@@ -99,10 +86,66 @@ public static class Seed
                     Code = $"T-{code++:D6}", Session = s, Row = place.Item1, Seat = place.Item2, Price = s.Price,
                     User = buyer, BuyerName = buyer?.FullName ?? "Покупатель на кассе",
                     SoldBy = online ? null : users[1], Channel = online ? "Сайт" : "Касса", Payment = online ? "Карта" : (rnd.Next(2) == 0 ? "Наличные" : "Карта"),
-                    CreatedAt = s.StartTime.AddDays(-1) < DateTime.Now ? s.StartTime.AddHours(-3) : DateTime.Now.AddHours(-rnd.Next(1, 48)),
+                    CreatedAt = Earlier(s.StartTime.AddHours(-rnd.Next(3, 72)), DateTime.Now.AddMinutes(-rnd.Next(5, 300))),
                 });
             }
         }
+        db.SaveChanges();
+    }
+
+    static DateTime Earlier(DateTime a, DateTime b) => a < b ? a : b;
+
+    /// <summary>Сеансы на несколько дней вперёд: в каждом зале по 4 показа в день, фильмы чередуются.</summary>
+    static List<Session> MakeSessions(Movie[] active, Hall[] halls, DateTime from, int days)
+    {
+        int[] startHours = { 10, 13, 16, 19 };
+        var sessions = new List<Session>();
+        for (int day = 0; day < days; day++)
+            for (int h = 0; h < halls.Length; h++)
+                for (int k = 0; k < startHours.Length; k++)
+                {
+                    var date = from.AddDays(day);
+                    var movie = active[(date.DayOfYear + h * 2 + k) % active.Length];
+                    int basePrice = h == 2 ? 600 : h == 1 ? 350 : 400;
+                    sessions.Add(new Session
+                    {
+                        Movie = movie, Hall = halls[h], StartTime = date.AddHours(startHours[k] + h * 0.25),
+                        Price = basePrice + (startHours[k] >= 19 ? 100 : 0),
+                    });
+                }
+        return sessions;
+    }
+
+    static readonly Dictionary<string, string> Posters = new()
+    {
+        ["Звёздный рубеж"] = "/posters/star.jpg", ["Бабушка на связи"] = "/posters/grandma.jpg", ["Тихий берег"] = "/posters/shore.jpg",
+        ["Котёнок Тим и большой город"] = "/posters/kitten.jpg", ["Последний рубеж"] = "/posters/action.jpg", ["Дом на холме"] = "/posters/house.jpg",
+        ["Тайна северного маяка"] = "/posters/lighthouse.jpg", ["Старый фильм"] = "/posters/old.jpg",
+    };
+
+    /// <summary>
+    /// Выполняется при каждом запуске: дополняет базу, созданную прошлой версией программы (столбец постера),
+    /// и добавляет сеансы, чтобы расписание всегда было заполнено на неделю вперёд.
+    /// </summary>
+    public static void Upgrade(CinemaDb db)
+    {
+        bool hasPoster = db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM pragma_table_info('Movies') WHERE name = 'Poster'")
+            .AsEnumerable().First() > 0;
+        if (!hasPoster)
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Movies ADD COLUMN Poster TEXT NULL");
+            foreach (var (title, file) in Posters)
+                db.Database.ExecuteSql($"UPDATE Movies SET Poster = {file} WHERE Title = {title}");
+        }
+
+        var active = db.Movies.Where(m => m.IsActive).OrderBy(m => m.Id).ToArray();
+        var halls = db.Halls.OrderBy(h => h.Id).ToArray();
+        if (active.Length == 0 || halls.Length == 0) return;
+        var last = db.Sessions.Max(s => (DateTime?)s.StartTime);
+        var from = last == null || last.Value.Date < DateTime.Today ? DateTime.Today : last.Value.Date.AddDays(1);
+        int days = (DateTime.Today.AddDays(7) - from).Days;
+        if (days <= 0) return;
+        db.Sessions.AddRange(MakeSessions(active, halls, from, days));
         db.SaveChanges();
     }
 }

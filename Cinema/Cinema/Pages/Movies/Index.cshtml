@@ -26,11 +26,13 @@
             }
         </select>
     </label>
-    <label class="check" style="align-self:center;margin-top:16px">
+    <label class="check filter-check">
         <input type="checkbox" name="today" value="true" checked="@Model.Today" /> Есть сеансы сегодня
     </label>
-    <button class="btn" type="submit">Найти</button>
-    <a class="btn btn-ghost" href="/Movies">Сбросить</a>
+    <div class="filter-buttons">
+        <button class="btn btn-accent" type="submit">Найти</button>
+        <a class="btn btn-ghost" href="/Movies">Сбросить</a>
+    </div>
 </form>
 
 @if (Model.Movies.Count == 0)
@@ -43,7 +45,7 @@
         <a class="movie-card" href="/Movies/Details/@m.Id">
             <partial name="_Poster" model="m" />
             <div class="body">
-                <b>@m.Title</b>
+                <b class="title">@m.Title</b>
                 <span class="meta">@m.Genre.Name · @m.Year · @Fmt.Duration(m.DurationMin)</span>
                 <span class="meta">Режиссёр: @m.Director</span>
             </div>

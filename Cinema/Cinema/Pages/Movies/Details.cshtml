@@ -2,19 +2,21 @@
 @model Cinema.Pages.Movies.DetailsModel
 @{ ViewData["Title"] = Model.Movie.Title; }
 
-<p><a href="/Movies">← Вся афиша</a></p>
-<div class="movie-page">
+<a class="back" href="/Movies">Вся афиша</a>
+<div class="movie-page" style="@(Model.Movie.Poster == null ? "" : $"--cover:url('{Model.Movie.Poster}')")">
     <partial name="_Poster" model="Model.Movie" />
-    <div>
+    <div class="movie-info">
         <h1>@Model.Movie.Title</h1>
+        <div class="chips">
+            <span class="pill pill-accent">@Model.Movie.AgeRating</span>
+            <span class="pill">@Model.Movie.Genre.Name</span>
+            <span class="pill">@Model.Movie.Year</span>
+            <span class="pill">@Fmt.Duration(Model.Movie.DurationMin)</span>
+        </div>
         <dl class="facts">
-            <dt>Жанр</dt><dd>@Model.Movie.Genre.Name</dd>
-            <dt>Год</dt><dd>@Model.Movie.Year</dd>
             <dt>Режиссёр</dt><dd>@Model.Movie.Director</dd>
-            <dt>Длительность</dt><dd>@Fmt.Duration(Model.Movie.DurationMin)</dd>
-            <dt>Возраст</dt><dd>@Model.Movie.AgeRating</dd>
         </dl>
-        <p>@Model.Movie.Description</p>
+        <p class="lead">@Model.Movie.Description</p>
 
         <h2>Сеансы</h2>
         @if (!Model.Movie.IsActive)

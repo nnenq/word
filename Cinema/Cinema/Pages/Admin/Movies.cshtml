@@ -41,7 +41,7 @@
                 <td class="r">@m.Sessions.Count</td>
                 <td>@if (m.IsActive) { <span class="pill pill-ok">В прокате</span> } else { <span class="pill">Снят</span> }</td>
                 <td class="r">
-                    <div class="actions" style="justify-content:flex-end">
+                    <div class="actions end">
                         <a class="btn btn-sm" href="/Admin/MovieEdit/@m.Id">Изменить</a>
                         <form method="post" asp-page-handler="Delete" asp-route-id="@m.Id" data-confirm="Удалить фильм «@m.Title»?">
                             <button class="btn btn-danger btn-sm" type="submit">Удалить</button>

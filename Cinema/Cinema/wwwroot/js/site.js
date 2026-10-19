@@ -1,5 +1,65 @@
+// Окно подтверждения вместо стандартного confirm/alert браузера
+const modal = (() => {
+    const box = document.getElementById("modal");
+    const text = document.getElementById("modalText");
+    const ok = box.querySelector("[data-modal=ok]");
+    const cancel = box.querySelector("[data-modal=cancel]");
+    let done = null;
+    function close(result) {
+        box.hidden = true;
+        document.body.classList.remove("no-scroll");
+        if (done) done(result);
+        done = null;
+    }
+    ok.addEventListener("click", () => close(true));
+    cancel.addEventListener("click", () => close(false));
+    box.addEventListener("click", e => { if (e.target === box) close(false); });
+    document.addEventListener("keydown", e => { if (!box.hidden && e.key === "Escape") close(false); });
+    return {
+        // onlyOk = true — простое сообщение с одной кнопкой «Понятно»
+        show(message, onlyOk) {
+            text.textContent = message;
+            cancel.hidden = !!onlyOk;
+            ok.textContent = onlyOk ? "Понятно" : "Да";
+            ok.classList.toggle("btn-danger-solid", !onlyOk && /удалить|вернуть|возврат/i.test(message));
+            box.hidden = false;
+            document.body.classList.add("no-scroll");
+            ok.focus();
+            return new Promise(resolve => done = resolve);
+        },
+    };
+})();
+
+// Подтверждение удаления и возврата
+document.addEventListener("submit", async e => {
+    const form = e.target;
+    const msg = form.dataset && form.dataset.confirm;
+    if (!msg || form.dataset.confirmed) return;
+    e.preventDefault();
+    if (await modal.show(msg)) {
+        form.dataset.confirmed = "1";
+        form.requestSubmit ? form.requestSubmit(e.submitter) : form.submit();
+    }
+});
+
+// Меню-«бургер» на телефоне
+document.querySelector(".burger")?.addEventListener("click", e => {
+    const open = document.body.classList.toggle("menu-open");
+    e.currentTarget.setAttribute("aria-expanded", open);
+});
+
+// Подписи к ячейкам таблиц: на телефоне строки таблицы показываются карточками
+document.querySelectorAll(".main table").forEach(table => {
+    const heads = [...table.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    table.querySelectorAll("tbody tr").forEach(tr =>
+        [...tr.children].forEach((td, i) => { if (heads[i]) td.dataset.label = heads[i]; }));
+});
+
+// Сообщения об успехе и ошибке плавно исчезают через несколько секунд
+document.querySelectorAll(".alert-ok").forEach(a => setTimeout(() => a.classList.add("fade"), 6000));
+
 // Схема зала: подсчёт выбранных мест и суммы заказа
-document.addEventListener("DOMContentLoaded", () => {
+(() => {
     const form = document.querySelector("[data-buy]");
     if (!form) return;
     const price = Number(form.dataset.price);
@@ -13,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const chosen = boxes.filter(b => b.checked);
         if (max && chosen.length > max && changed) {
             changed.checked = false;
-            alert("За один заказ можно выбрать не больше " + max + " мест.");
+            modal.show("За один заказ можно выбрать не больше " + max + " мест.", true);
             return update();
         }
         list.textContent = chosen.length
@@ -24,10 +84,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     boxes.forEach(b => b.addEventListener("change", () => update(b)));
     update();
-});
-
-// Подтверждение удаления и возврата
-document.addEventListener("submit", e => {
-    const msg = e.target.dataset && e.target.dataset.confirm;
-    if (msg && !confirm(msg)) e.preventDefault();
-});
+})();

@@ -50,6 +50,8 @@ public class Movie
     public int Year { get; set; }
     [MaxLength(100)] public string Director { get; set; } = "";
     [MaxLength(1000)] public string Description { get; set; } = "";
+    /// <summary>Путь к картинке постера в папке wwwroot, например /posters/star.jpg. Пусто — рисуется цветная заглушка.</summary>
+    [MaxLength(200)] public string? Poster { get; set; }
     /// <summary>Фильм в прокате (показывается в афише).</summary>
     public bool IsActive { get; set; } = true;
     public List<Session> Sessions { get; set; } = new();

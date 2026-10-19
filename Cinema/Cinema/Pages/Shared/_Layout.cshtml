@@ -3,7 +3,8 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a10" />
     <title>@ViewData["Title"] — Кинотеатр «Звезда»</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
@@ -11,6 +12,8 @@
 <header class="top">
     <div class="wrap top-row">
         <a class="logo" href="/"><span class="logo-mark">★</span> Кинотеатр «Звезда»</a>
+        <button class="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="topNav"><span></span></button>
+        <div class="top-nav" id="topNav">
         <nav class="menu">
             <a href="/">Главная</a>
             <a href="/Movies">Афиша</a>
@@ -42,6 +45,7 @@
                 <a class="btn btn-ghost btn-sm" href="/Account/Login">Войти</a>
                 <a class="btn btn-accent btn-sm" href="/Account/Register">Регистрация</a>
             }
+        </div>
         </div>
     </div>
 </header>
@@ -77,6 +81,15 @@
 <footer class="foot">
     <div class="wrap">Кинотеатр «Звезда» · информационная система продажи билетов · индивидуальная практическая работа, вариант 13 (Кирчу Игорь)</div>
 </footer>
+<div class="modal" id="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalText">
+        <p id="modalText"></p>
+        <div class="actions end">
+            <button type="button" class="btn btn-ghost" data-modal="cancel">Отмена</button>
+            <button type="button" class="btn btn-accent" data-modal="ok">Да</button>
+        </div>
+    </div>
+</div>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

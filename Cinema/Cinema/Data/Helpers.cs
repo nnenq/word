@@ -41,6 +41,6 @@ public static class Fmt
     public static string Duration(int min) => $"{min / 60} ч {min % 60:D2} мин";
     public static string Day(DateTime d) =>
         d.Date == DateTime.Today ? "Сегодня" : d.Date == DateTime.Today.AddDays(1) ? "Завтра" : d.ToString("ddd, d MMMM", new System.Globalization.CultureInfo("ru-RU"));
-    /// <summary>Цвет «постера» фильма (у демо-фильмов нет картинок).</summary>
+    /// <summary>Цвет заглушки постера, если у фильма нет картинки.</summary>
     public static int Hue(int movieId) => movieId * 47 % 360;
 }

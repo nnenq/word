@@ -2,10 +2,10 @@
 @model Cinema.Pages.Admin.MovieEditModel
 @{ ViewData["Title"] = Model.Id == null ? "Новый фильм" : "Изменение фильма"; }
 
-<p><a href="/Admin/Movies">← Фильмы</a></p>
+<a class="back" href="/Admin/Movies">Фильмы</a>
 <div class="panel" style="max-width:820px">
     <h1>@ViewData["Title"]</h1>
-    <form method="post" class="form form-wide" novalidate>
+    <form method="post" class="form form-wide" enctype="multipart/form-data" novalidate>
         <div asp-validation-summary="ModelOnly" class="validation-summary-errors full"></div>
         <label class="field full">Название
             <input asp-for="Input.Title" />
@@ -35,9 +35,27 @@
             </select>
             <span asp-validation-for="Input.AgeRating" class="field-error"></span>
         </label>
-        <label class="check" style="align-self:end">
+        <label class="check check-end">
             <input asp-for="Input.IsActive" /> В прокате (показывать в афише)
         </label>
+        <div class="field full poster-field">
+            <span>Постер</span>
+            <div class="poster-upload">
+                @if (Model.CurrentPoster != null)
+                {
+                    <img src="@Model.CurrentPoster" alt="Текущий постер" />
+                }
+                <div class="stack-sm">
+                    <input type="file" name="PosterFile" accept=".jpg,.jpeg,.png,.webp" />
+                    <span class="hint">JPG, PNG или WEBP до 5 МБ, лучше вертикальная картинка 2:3. Если не выбирать файл, постер останется прежним.</span>
+                    @if (Model.CurrentPoster != null)
+                    {
+                        <label class="check"><input type="checkbox" name="RemovePoster" value="true" /> Убрать постер</label>
+                    }
+                    <span asp-validation-for="PosterFile" class="field-error"></span>
+                </div>
+            </div>
+        </div>
         <label class="field full">Описание
             <textarea asp-for="Input.Description"></textarea>
             <span asp-validation-for="Input.Description" class="field-error"></span>
