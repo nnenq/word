@@ -1,19 +1,41 @@
 @page
 @model Cinema.Pages.Cashier.TicketsModel
-@{ ViewData["Title"] = "Билеты"; ViewData["AdminNav"] = User.IsAdmin(); }
+@{
+    ViewData["Title"] = "Билеты";
+    ViewData["AdminNav"] = User.IsAdmin();
+    // Ссылка на фильм с сохранением остальных фильтров
+    string MovieLink(int? id) => "/Cashier/Tickets?" + string.Join("&", new[] {
+        id == null ? null : "movie=" + id, string.IsNullOrEmpty(Model.Q) ? null : "q=" + Uri.EscapeDataString(Model.Q),
+        string.IsNullOrEmpty(Model.Status) ? null : "status=" + Model.Status, string.IsNullOrEmpty(Model.Channel) ? null : "channel=" + Uri.EscapeDataString(Model.Channel),
+        Model.Date == null ? null : "date=" + Model.Date.Value.ToString("yyyy-MM-dd") }.Where(x => x != null));
+}
 
 <div class="page-head">
-    <div><h1>Проданные билеты</h1><div class="muted">Найдено: @Model.Total · показано: @Model.Tickets.Count · сумма действующих: @Fmt.Money(Model.Sum)</div></div>
-    <a class="btn" href="/Cashier">Касса</a>
+    <div><h1>Проданные билеты</h1>
+        <div class="muted">Заказов: @Model.TotalOrders · билетов: @Model.TicketCount · сумма действующих: @Fmt.Money(Model.Sum)</div></div>
+    <a class="btn btn-tonal" href="/Cashier">Касса — продать билеты</a>
 </div>
 
+<nav class="chips chips-inline" aria-label="Фильмы">
+    <a class="chip @(Model.MovieId == null ? "active" : "")" href="@MovieLink(null)">Все фильмы</a>
+    @foreach (var (m, active) in Model.Movies)
+    {
+        <a class="chip @(Model.MovieId == m.Id ? "active" : "")" href="@MovieLink(m.Id)" title="Действующих билетов на будущие сеансы: @active">
+            @m.Title @if (active > 0) { <span class="chip-count">@active</span> }
+        </a>
+    }
+</nav>
+
 <form method="get" class="filters">
+    @if (Model.MovieId != null) { <input type="hidden" name="movie" value="@Model.MovieId" /> }
+    @if (Model.SessionId != null) { <input type="hidden" name="session" value="@Model.SessionId" /> }
     <label class="grow">Поиск: номер билета, покупатель, фильм
         <input type="search" name="q" value="@Model.Q" placeholder="T-000123, Петров, «Звёздный»" />
     </label>
     <label>Статус
         <select name="status">
             <option value="">Все</option>
+            <option value="upcoming" selected="@(Model.Status == "upcoming")">Можно вернуть</option>
             <option value="paid" selected="@(Model.Status == "paid")">Действует</option>
             <option value="returned" selected="@(Model.Status == "returned")">Возвращён</option>
         </select>
@@ -26,56 +48,93 @@
         </select>
     </label>
     <label>Дата сеанса <input type="date" name="date" value="@(Model.Date?.ToString("yyyy-MM-dd"))" /></label>
-    @if (Model.SessionId != null) { <input type="hidden" name="session" value="@Model.SessionId" /> }
-    <button class="btn" type="submit">Найти</button>
-    <a class="btn btn-ghost" href="/Cashier/Tickets">Сбросить</a>
+    <div class="filter-buttons">
+        <button class="btn btn-accent" type="submit">Найти</button>
+        <a class="btn btn-tonal" href="/Cashier/Tickets">Сбросить</a>
+    </div>
 </form>
 @if (Model.SessionId != null)
 {
     <div class="alert alert-info">Показаны билеты одного сеанса. <a href="/Cashier/Tickets">Показать все</a></div>
 }
 
-@if (Model.Tickets.Count == 0)
+@if (Model.Orders.Count == 0)
 {
     <div class="panel empty">Билетов не найдено.</div>
 }
 else
 {
-    <div class="tw">
-        <table>
-            <thead><tr><th>Номер</th><th>Сеанс</th><th>Фильм</th><th>Зал</th><th>Место</th><th class="r">Цена</th><th>Покупатель</th><th>Продажа</th><th>Статус</th><th></th></tr></thead>
-            <tbody>
-            @foreach (var t in Model.Tickets)
-            {
-                <tr>
-                    <td class="ticket-code">@t.Code</td>
-                    <td class="num">@t.Session.StartTime.ToString("dd.MM HH:mm")</td>
-                    <td>@t.Session.Movie.Title</td>
-                    <td>@t.Session.Hall.Name</td>
-                    <td class="num">@t.Row-@t.Seat</td>
-                    <td class="r">@Fmt.Money(t.Price)</td>
-                    <td>@t.BuyerName</td>
-                    <td class="small">@t.Channel · @t.Payment<br /><span class="muted">@(t.SoldBy?.FullName ?? "онлайн") · @t.CreatedAt.ToString("dd.MM HH:mm")</span></td>
-                    <td>
-                        @if (t.Status == TicketStatus.Returned) { <span class="pill pill-bad">Возвращён</span> }
-                        else if (t.Session.StartTime <= DateTime.Now) { <span class="pill">Использован</span> }
-                        else { <span class="pill pill-ok">Действует</span> }
-                    </td>
-                    <td class="r">
-                        @if (t.Status == TicketStatus.Paid && t.Session.StartTime > DateTime.Now)
-                        {
-                            <form method="post" asp-page-handler="Return" asp-route-id="@t.Id" data-confirm="Оформить возврат билета @t.Code (@Fmt.Money(t.Price))?">
-                                <button class="btn btn-danger btn-sm" type="submit">Возврат</button>
-                            </form>
-                        }
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-    @if (Model.Total > Model.Tickets.Count)
+    <form method="post" asp-page-handler="Return" id="bulk" data-bulk>
+        <div class="tw">
+            <table class="orders-table">
+                <thead><tr><th class="sel"><input type="checkbox" data-check-all aria-label="Отметить все заказы, которые можно вернуть" /></th>
+                    <th>Сеанс</th><th>Места</th><th>Покупатель</th><th class="r">Сумма</th><th>Статус</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var o in Model.Orders)
+                {
+                    var s = o.Session;
+                    var can = o.Returnable(Model.MeId, isStaff: true);
+                    var canIds = string.Join(",", can.Select(t => t.Id));
+                    <tr class="@(o.Started || o.AllReturned ? "row-past" : "")">
+                        <td class="sel">
+                            @if (can.Count > 0)
+                            {
+                                <input type="checkbox" name="ids" value="@canIds" data-price="@can.Sum(t => t.Price)" data-count="@can.Count" aria-label="Отметить заказ" />
+                            }
+                        </td>
+                        <td>
+                            <b>@s.Movie.Title</b>
+                            <div class="meta small">@Fmt.Day(s.StartTime), @s.StartTime.ToString("HH:mm") · @s.Hall.Name</div>
+                        </td>
+                        <td>
+                            <div class="seats">
+                                @foreach (var t in o.Tickets)
+                                {
+                                    <span class="seat-chip @(t.Status == TicketStatus.Returned ? "returned" : "")" title="Билет @t.Code · @Fmt.Money(t.Price)">
+                                        @t.Row–@t.Seat
+                                        @if (can.Contains(t) && can.Count > 1)
+                                        {
+                                            <button class="seat-x" type="submit" name="pick" value="@t.Id" title="Вернуть только это место"
+                                                    data-confirm="Вернуть один билет @t.Code (ряд @t.Row, место @t.Seat)? Вернуть покупателю @Fmt.Money(t.Price).">×</button>
+                                        }
+                                    </span>
+                                }
+                            </div>
+                            <div class="meta small">@(o.Tickets.Count == 1 ? o.First.Code : $"{o.First.Code} … {o.Tickets[^1].Code}")</div>
+                        </td>
+                        <td>
+                            @o.First.BuyerName
+                            <div class="meta small">@o.First.Channel · @o.First.Payment · @(o.First.SoldBy?.FullName ?? "онлайн") · @o.First.CreatedAt.ToString("dd.MM HH:mm")</div>
+                        </td>
+                        <td class="r num"><b>@Fmt.Money(o.TotalSum)</b>@if (o.ActiveSum != o.TotalSum && !o.AllReturned) { <div class="meta small">действует @Fmt.Money(o.ActiveSum)</div> }</td>
+                        <td>
+                            @if (o.AllReturned) { <span class="pill pill-bad">Возвращён</span> }
+                            else if (o.Started) { <span class="pill">Использован</span> }
+                            else if (o.Active.Count < o.Tickets.Count) { <span class="pill pill-ok">Частично</span> }
+                            else { <span class="pill pill-ok">Действует</span> }
+                        </td>
+                        <td class="r">
+                            @if (can.Count > 0)
+                            {
+                                <button class="btn btn-danger btn-sm" type="submit" name="pick" value="@canIds"
+                                        data-confirm="Оформить возврат @(can.Count == 1 ? $"билета {can[0].Code}" : $"заказа — {can.Count} {AppPage.Plural(can.Count, "билет", "билета", "билетов")}") на «@s.Movie.Title»? Вернуть покупателю @Fmt.Money(can.Sum(t => t.Price)).">
+                                    Возврат · @Fmt.Money(can.Sum(t => t.Price))
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="bulk-bar" hidden>
+            <span class="bulk-text"></span>
+            <button class="btn btn-text btn-sm" type="button" data-clear>Снять отметки</button>
+            <button class="btn btn-accent btn-sm" type="submit" data-bulk-submit>Вернуть выбранные</button>
+        </div>
+    </form>
+    @if (Model.TotalOrders > Model.Orders.Count)
     {
-        <p class="muted small">Показаны первые @Model.Tickets.Count билетов. Уточните поиск, чтобы найти нужный.</p>
+        <p class="muted small">Показаны первые @Model.Orders.Count заказов из @Model.TotalOrders. Выберите фильм или уточните поиск.</p>
     }
 }

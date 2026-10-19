@@ -42,7 +42,9 @@ public class IndexModel : AppPage
     public IndexModel(CinemaDb db, TicketService tickets, IPasswordHasher<User> hasher) { this.db = db; this.tickets = tickets; this.hasher = hasher; }
 
     public User Me { get; set; } = null!;
-    public List<Ticket> Tickets { get; set; } = new();
+    public List<TicketOrder> Orders { get; set; } = new();
+    /// <summary>Сколько заказов в каждой вкладке.</summary>
+    public Dictionary<string, int> Counts { get; set; } = new();
     [BindProperty(SupportsGet = true)] public string Show { get; set; } = "upcoming";
     [BindProperty] public ProfileInput Profile { get; set; } = new();
     [BindProperty] public PasswordInput Pass { get; set; } = new();
@@ -51,26 +53,34 @@ public class IndexModel : AppPage
     {
         Me = await db.Users.Include(u => u.Role).FirstAsync(u => u.Id == User.UserId());
         if (fillProfile) Profile = new ProfileInput { FullName = Me.FullName, Email = Me.Email };
-        var q = db.Tickets.Include(t => t.Session).ThenInclude(s => s.Movie).Include(t => t.Session).ThenInclude(s => s.Hall)
-                  .Where(t => t.UserId == Me.Id);
-        q = Show switch
+        var all = await db.Tickets.Include(t => t.Session).ThenInclude(s => s.Movie).Include(t => t.Session).ThenInclude(s => s.Hall)
+            .Where(t => t.UserId == Me.Id).ToListAsync();
+        // Заказ попадает во вкладку по своим билетам: предстоящие — есть действующие билеты на будущий сеанс
+        var orders = TicketOrder.Group(all);
+        var tabs = new Dictionary<string, Func<TicketOrder, bool>>
         {
-            "past" => q.Where(t => t.Status == TicketStatus.Paid && t.Session.StartTime <= DateTime.Now),
-            "returned" => q.Where(t => t.Status == TicketStatus.Returned),
-            "all" => q,
-            _ => q.Where(t => t.Status == TicketStatus.Paid && t.Session.StartTime > DateTime.Now),
+            ["upcoming"] = o => o.Active.Count > 0 && !o.Started,
+            ["past"] = o => o.Active.Count > 0 && o.Started,
+            ["returned"] = o => o.Tickets.Any(t => t.Status == TicketStatus.Returned),
+            ["all"] = _ => true,
         };
-        Tickets = await q.OrderBy(t => t.Session.StartTime).ThenBy(t => t.Row).ThenBy(t => t.Seat).ToListAsync();
+        if (!tabs.ContainsKey(Show)) Show = "upcoming";
+        Counts = tabs.ToDictionary(t => t.Key, t => orders.Count(t.Value));
+        var list = orders.Where(tabs[Show]);
+        Orders = (Show == "upcoming" ? list.OrderBy(o => o.Session.StartTime) : list.OrderByDescending(o => o.Session.StartTime)).ToList();
     }
 
     public async Task OnGetAsync() => await LoadAsync(true);
 
-    public async Task<IActionResult> OnPostReturnAsync(int id)
+    /// <summary>Возврат одного билета или всего заказа (номера билетов через запятую).</summary>
+    public async Task<IActionResult> OnPostReturnAsync(string? ids, int? id)
     {
         var me = await db.Users.FirstAsync(u => u.Id == User.UserId());
-        var error = await tickets.ReturnAsync(id, me, isStaff: false);
-        if (error != null) Error(error); else Success("Билет возвращён. Деньги поступят на карту в течение 3 рабочих дней.");
-        return RedirectToPage();
+        var list = ParseIds(new[] { ids, id?.ToString() });
+        var (back, error) = await tickets.ReturnManyAsync(list, me, isStaff: false);
+        if (error != null) Error(error);
+        else Success($"Возвращено {back.Count} {Plural(back.Count, "билет", "билета", "билетов")} на сумму {Fmt.Money(back.Sum(t => t.Price))}. Деньги поступят на карту в течение 3 рабочих дней.");
+        return RedirectToPage(new { show = Show });
     }
 
     public async Task<IActionResult> OnPostProfileAsync()

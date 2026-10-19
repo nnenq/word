@@ -21,6 +21,15 @@ public abstract class AppPage : PageModel
 {
     protected void Success(string text) => TempData["Success"] = text;
     protected void Error(string text) => TempData["Error"] = text;
+
+    /// <summary>Номера билетов из формы: «12,13,14» или несколько значений поля.</summary>
+    protected static List<int> ParseIds(IEnumerable<string?> values) =>
+        values.SelectMany(v => (v ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+              .Select(x => int.TryParse(x, out var id) ? id : 0).Where(id => id > 0).Distinct().ToList();
+
+    /// <summary>Слово в нужной форме: 1 билет, 2 билета, 5 билетов.</summary>
+    public static string Plural(int n, string one, string few, string many) =>
+        (n % 100 is >= 11 and <= 14) ? many : (n % 10) switch { 1 => one, >= 2 and <= 4 => few, _ => many };
 }
 
 public static class Search

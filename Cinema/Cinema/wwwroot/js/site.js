@@ -29,10 +29,10 @@ const modal = (() => {
     };
 })();
 
-// Подтверждение удаления и возврата
+// Подтверждение удаления и возврата: текст берётся у нажатой кнопки или у формы
 document.addEventListener("submit", async e => {
     const form = e.target;
-    const msg = form.dataset && form.dataset.confirm;
+    const msg = (e.submitter && e.submitter.dataset.confirm) || (form.dataset && form.dataset.confirm);
     if (!msg || form.dataset.confirmed) return;
     e.preventDefault();
     if (await modal.show(msg)) {
@@ -73,6 +73,33 @@ document.querySelectorAll(".main table").forEach(table => {
     const heads = [...table.querySelectorAll("thead th")].map(th => th.textContent.trim());
     table.querySelectorAll("tbody tr").forEach(tr =>
         [...tr.children].forEach((td, i) => { if (heads[i]) td.dataset.label = heads[i]; }));
+});
+
+// Возврат нескольких заказов: галочки, строка внизу с количеством и суммой
+const rub = n => n.toLocaleString("ru-RU") + " ₽";
+const plural = (n, one, few, many) => (n % 100 >= 11 && n % 100 <= 14) ? many : [many, one, few, few, few, many, many, many, many, many][n % 10];
+document.querySelectorAll("[data-bulk]").forEach(form => {
+    const boxes = [...form.querySelectorAll("input[name=ids]")];
+    const all = form.querySelector("[data-check-all]");
+    const bar = form.querySelector(".bulk-bar");
+    const text = form.querySelector(".bulk-text");
+    const submit = form.querySelector("[data-bulk-submit]");
+    if (!boxes.length) { all.disabled = true; return; }
+    function update() {
+        const chosen = boxes.filter(b => b.checked);
+        const count = chosen.reduce((s, b) => s + Number(b.dataset.count), 0);
+        const sum = chosen.reduce((s, b) => s + Number(b.dataset.price), 0);
+        bar.hidden = chosen.length === 0;
+        text.textContent = `Выбрано: ${count} ${plural(count, "билет", "билета", "билетов")} · вернуть ${rub(sum)}`;
+        submit.dataset.confirm = `Оформить возврат: ${chosen.length} ${plural(chosen.length, "заказ", "заказа", "заказов")}, ${count} ${plural(count, "билет", "билета", "билетов")}? Вернуть покупателям ${rub(sum)}.`;
+        all.checked = chosen.length === boxes.length;
+        all.indeterminate = chosen.length > 0 && chosen.length < boxes.length;
+        boxes.forEach(b => b.closest("tr").classList.toggle("row-selected", b.checked));
+    }
+    boxes.forEach(b => b.addEventListener("change", update));
+    all.addEventListener("change", () => { boxes.forEach(b => b.checked = all.checked); update(); });
+    form.querySelector("[data-clear]").addEventListener("click", () => { boxes.forEach(b => b.checked = false); update(); });
+    update();
 });
 
 // Сообщения об успехе и ошибке плавно исчезают через несколько секунд

@@ -69,26 +69,54 @@ public static class Seed
         var sessions = MakeSessions(movies.Where(m => m.IsActive).ToArray(), halls, DateTime.Today, 7);
         db.Sessions.AddRange(sessions);
 
-        // Проданные билеты: часть через сайт (зрители), часть на кассе
+        // Ещё несколько зрителей, чтобы продажи через сайт были у разных людей
+        var buyers = new[]
+        {
+            ("orlova", "Орлова Дарья"), ("kim", "Ким Артём"), ("belov", "Белов Игорь"), ("sokolova", "Соколова Ева"),
+            ("morozov", "Морозов Илья"), ("lebedeva", "Лебедева Нина"), ("volkov", "Волков Денис"), ("zaitseva", "Зайцева Ольга"),
+        }.Select(x => U(x.Item1, "Viewer123", x.Item2, x.Item1 + "@mail.ru", viewer)).ToArray();
+        db.Users.AddRange(buyers);
+
+        // Проданные билеты заказами: в заказе 1–4 места рядом в одном ряду, часть через сайт, часть на кассе
         int code = 1;
+        var taken = sessions.ToDictionary(s => s, _ => new HashSet<(int, int)>());
+        List<Ticket>? Order(Session s, int seats, User? buyer, DateTime created, string? payment = null)
+        {
+            for (int attempt = 0; attempt < 20; attempt++)
+            {
+                int row = rnd.Next(1, s.Hall.Rows + 1), first = rnd.Next(1, s.Hall.SeatsPerRow - seats + 2);
+                var places = Enumerable.Range(first, seats).Select(p => (row, p)).ToList();
+                if (places.Any(taken[s].Contains)) continue;
+                places.ForEach(p => taken[s].Add(p));
+                var list = places.Select(p => new Ticket
+                {
+                    Code = $"T-{code++:D6}", Session = s, Row = p.row, Seat = p.p, Price = s.Price,
+                    User = buyer, BuyerName = buyer?.FullName ?? "Покупатель на кассе",
+                    SoldBy = buyer == null ? users[1] : null, Channel = buyer == null ? "Касса" : "Сайт",
+                    Payment = payment ?? (buyer != null || rnd.Next(2) == 0 ? "Карта" : "Наличные"), CreatedAt = created,
+                }).ToList();
+                db.Tickets.AddRange(list);
+                return list;
+            }
+            return null;
+        }
+        DateTime Bought(Session s) => Earlier(s.StartTime.AddHours(-rnd.Next(3, 72)), DateTime.Now.AddMinutes(-rnd.Next(5, 300)));
+
         foreach (var s in sessions.Where((_, i) => i % 2 == 0))
         {
-            int count = rnd.Next(3, Math.Max(4, s.Hall.Capacity / 3));
-            var taken = new HashSet<(int, int)>();
-            for (int i = 0; i < count; i++)
-            {
-                var place = (rnd.Next(1, s.Hall.Rows + 1), rnd.Next(1, s.Hall.SeatsPerRow + 1));
-                if (!taken.Add(place)) continue;
-                bool online = rnd.Next(2) == 0;
-                var buyer = online ? users[2 + rnd.Next(2)] : null;
-                db.Tickets.Add(new Ticket
-                {
-                    Code = $"T-{code++:D6}", Session = s, Row = place.Item1, Seat = place.Item2, Price = s.Price,
-                    User = buyer, BuyerName = buyer?.FullName ?? "Покупатель на кассе",
-                    SoldBy = online ? null : users[1], Channel = online ? "Сайт" : "Касса", Payment = online ? "Карта" : (rnd.Next(2) == 0 ? "Наличные" : "Карта"),
-                    CreatedAt = Earlier(s.StartTime.AddHours(-rnd.Next(3, 72)), DateTime.Now.AddMinutes(-rnd.Next(5, 300))),
-                });
-            }
+            int orders = rnd.Next(2, Math.Max(3, s.Hall.Capacity / 7));
+            for (int i = 0; i < orders; i++)
+                Order(s, rnd.Next(1, 5), rnd.Next(100) < 55 ? buyers[rnd.Next(buyers.Length)] : null, Bought(s));
+        }
+
+        // У демо-зрителей Петрова и Ивановой по несколько понятных заказов: два предстоящих и один возвращённый
+        var future = sessions.Where(s => s.StartTime > DateTime.Now.AddHours(3)).ToList();
+        foreach (var (who, shift) in new[] { (users[2], 0), (users[3], 5) })
+        {
+            Order(future[(shift + 4) % future.Count], 2, who, DateTime.Now.AddHours(-20));
+            Order(future[(shift + 30) % future.Count], 3, who, DateTime.Now.AddHours(-2));
+            var back = Order(future[(shift + 15) % future.Count], 1, who, DateTime.Now.AddDays(-1));
+            back?.ForEach(t => { t.Status = TicketStatus.Returned; t.ReturnedAt = DateTime.Now.AddHours(-12); });
         }
         db.SaveChanges();
     }

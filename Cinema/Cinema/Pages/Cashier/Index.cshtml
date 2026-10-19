@@ -42,8 +42,11 @@ else
                     <td><div class="bar" title="@pct %"><i style="width:@pct%"></i></div></td>
                     <td class="r">@(s.Hall.Capacity - sold)</td>
                     <td class="r">
-                        @if (s.StartTime <= DateTime.Now) { <partial name="_SessionState" model="s" /> }
-                        else { <a class="btn btn-accent btn-sm" href="/Tickets/Buy/@s.Id">Продать</a> }
+                        <div class="actions end">
+                            @if (s.StartTime <= DateTime.Now) { <partial name="_SessionState" model="s" /> }
+                            else { <a class="btn btn-accent btn-sm" href="/Tickets/Buy/@s.Id">Продать</a> }
+                            @if (sold > 0) { <a class="btn btn-tonal btn-sm" href="/Cashier/Tickets?session=@s.Id" title="Проданные билеты сеанса, возврат">Билеты</a> }
+                        </div>
                     </td>
                 </tr>
             }

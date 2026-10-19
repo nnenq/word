@@ -13,42 +13,70 @@
 <div class="stack">
     <section>
         <h2>Мои билеты</h2>
-        <form method="get" class="filters">
-            <label>Показать
-                <select name="show" onchange="this.form.submit()">
-                    <option value="upcoming" selected="@(Model.Show == "upcoming")">Предстоящие</option>
-                    <option value="past" selected="@(Model.Show == "past")">Прошедшие</option>
-                    <option value="returned" selected="@(Model.Show == "returned")">Возвращённые</option>
-                    <option value="all" selected="@(Model.Show == "all")">Все</option>
-                </select>
-            </label>
-            <noscript><button class="btn" type="submit">Показать</button></noscript>
-        </form>
-        @if (Model.Tickets.Count == 0)
-        {
-            <div class="panel empty">Билетов нет. Выберите сеанс в <a href="/Schedule">расписании</a>.</div>
-        }
-        <div class="tickets">
-            @foreach (var t in Model.Tickets)
+        <nav class="chips chips-inline" aria-label="Какие билеты показать">
+            @foreach (var (key, name) in new[] { ("upcoming", "Предстоящие"), ("past", "Прошедшие"), ("returned", "Возвращённые"), ("all", "Все") })
             {
-                var upcoming = t.Status == TicketStatus.Paid && t.Session.StartTime > DateTime.Now;
-                <div class="ticket">
-                    <div class="actions spread">
-                        <span class="ticket-code">@t.Code</span>
-                        @if (t.Status == TicketStatus.Returned) { <span class="pill pill-bad">Возвращён</span> }
-                        else if (upcoming) { <span class="pill pill-ok">Действует</span> }
-                        else { <span class="pill">Сеанс прошёл</span> }
+                <a class="chip @(Model.Show == key ? "active" : "")" href="/Cabinet?show=@key">@name <span class="chip-count">@Model.Counts.GetValueOrDefault(key)</span></a>
+            }
+        </nav>
+        @if (Model.Orders.Count == 0)
+        {
+            <div class="panel empty">
+                @(Model.Show == "upcoming" ? "Предстоящих сеансов нет." : "Здесь пока пусто.")
+                Выберите фильм в <a href="/Movies">афише</a> или сеанс в <a href="/Schedule">расписании</a>.
+            </div>
+        }
+        <div class="orders">
+            @foreach (var o in Model.Orders)
+            {
+                var can = o.Returnable(Model.Me.Id, isStaff: false);
+                var s = o.Session;
+                <article class="order-card @(o.AllReturned || o.Started ? "order-dim" : "")">
+                    <a href="/Movies/Details/@s.MovieId" class="order-thumb"><partial name="_Poster" model="s.Movie" /></a>
+                    <div class="order-body">
+                        <div class="order-head">
+                            <div>
+                                <b class="title">@s.Movie.Title</b>
+                                <span class="meta">@Fmt.Day(s.StartTime), @s.StartTime.ToString("HH:mm") · @s.Hall.Name</span>
+                            </div>
+                            @if (o.AllReturned) { <span class="pill pill-bad">Возвращён</span> }
+                            else if (o.Started) { <span class="pill">Сеанс прошёл</span> }
+                            else { <span class="pill pill-ok">Действует</span> }
+                        </div>
+                        <div class="seats">
+                            @foreach (var t in o.Tickets)
+                            {
+                                var returnable = can.Contains(t);
+                                <span class="seat-chip @(t.Status == TicketStatus.Returned ? "returned" : "")" title="Билет @t.Code">
+                                    Ряд @t.Row · место @t.Seat
+                                    @if (returnable && o.Active.Count > 1)
+                                    {
+                                        <form method="post" asp-page-handler="Return" asp-route-show="@Model.Show" class="inline" data-confirm="Вернуть один билет: ряд @t.Row, место @t.Seat (@Fmt.Money(t.Price))? Деньги вернутся на карту.">
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <button class="seat-x" type="submit" aria-label="Вернуть билет ряд @t.Row место @t.Seat" title="Вернуть только этот билет">×</button>
+                                        </form>
+                                    }
+                                </span>
+                            }
+                        </div>
+                        <div class="order-foot">
+                            <span class="order-sum">@o.Tickets.Count @AppPage.Plural(o.Tickets.Count, "билет", "билета", "билетов") · <b>@Fmt.Money(o.TotalSum)</b>
+                                <span class="muted small">· куплено @o.First.CreatedAt.ToString("dd.MM HH:mm")</span></span>
+                            @if (can.Count > 0)
+                            {
+                                <form method="post" asp-page-handler="Return" asp-route-show="@Model.Show" class="inline"
+                                      data-confirm="Вернуть @(can.Count == 1 ? "билет" : $"все {can.Count} {AppPage.Plural(can.Count, "билет", "билета", "билетов")} заказа") на «@s.Movie.Title» (@Fmt.Day(s.StartTime).ToLower(), @s.StartTime.ToString("HH:mm"))? На карту вернётся @Fmt.Money(can.Sum(t => t.Price)).">
+                                    <input type="hidden" name="ids" value="@string.Join(",", can.Select(t => t.Id))" />
+                                    <button class="btn btn-danger btn-sm" type="submit">@(can.Count == 1 ? "Вернуть билет" : "Вернуть заказ") · @Fmt.Money(can.Sum(t => t.Price))</button>
+                                </form>
+                            }
+                            else if (o.Active.Count > 0 && !o.Started)
+                            {
+                                <span class="muted small">До начала меньше часа — вернуть можно только в кассе</span>
+                            }
+                        </div>
                     </div>
-                    <b>@t.Session.Movie.Title</b>
-                    <span>@Fmt.Day(t.Session.StartTime), @t.Session.StartTime.ToString("HH:mm") · @t.Session.Hall.Name</span>
-                    <span>Ряд <b>@t.Row</b>, место <b>@t.Seat</b> · @Fmt.Money(t.Price)</span>
-                    @if (upcoming)
-                    {
-                        <form method="post" asp-page-handler="Return" asp-route-id="@t.Id" data-confirm="Вернуть билет @t.Code? Деньги вернутся на карту.">
-                            <button class="btn btn-danger btn-sm" type="submit">Вернуть билет</button>
-                        </form>
-                    }
-                </div>
+                </article>
             }
         </div>
     </section>

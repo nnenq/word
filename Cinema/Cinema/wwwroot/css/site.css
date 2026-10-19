@@ -156,6 +156,7 @@ td .actions form { margin: 0; }
 .panel { background: var(--surface); border-radius: var(--radius); padding: 20px; }
 .stack { display: grid; gap: 20px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.stack > *, .grid2 > *, .watch > * { min-width: 0; }
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .page-head h1, .page-head h2 { margin: 0; }
 .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 24px; }
@@ -280,6 +281,35 @@ tr.row-past td, tr.row-past td a { color: #717171; }
 .ticket-code { font-family: "Roboto Mono", Consolas, monospace; font-weight: 500; color: var(--accent); }
 .ticket form { margin-top: 6px; }
 
+/* Заказы: билеты, купленные вместе */
+.chips-inline { position: static; margin: 0 0 16px; padding: 0 0 4px; flex-wrap: wrap; }
+.chip-count { margin-left: 6px; padding: 0 6px; border-radius: 10px; background: rgba(255, 255, 255, .12); font-size: 12px; line-height: 18px; }
+.chip.active .chip-count { background: rgba(0, 0, 0, .12); }
+.orders { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 12px; }
+.order-card { display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 14px; background: var(--surface); border-radius: var(--radius); padding: 12px; }
+.order-dim .order-thumb { opacity: .5; }
+.order-thumb { display: block; align-self: start; }
+.order-thumb .thumb { border-radius: 8px; }
+.order-thumb .thumb-title { font-size: 12px; padding: 6px; }
+.order-body { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.order-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.order-head .title { display: block; font-size: 16px; font-weight: 500; }
+.order-head .meta { display: block; font-size: 13px; }
+.order-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.order-sum { font-size: 14px; }
+.seats { display: flex; flex-wrap: wrap; gap: 6px; }
+.seat-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 14px; background: var(--surface-2); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.seat-chip.returned { text-decoration: line-through; color: #717171; }
+.seat-x { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: -6px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 0; }
+.seat-x:hover { background: var(--bad-soft); color: var(--bad); }
+.orders-table .sel { width: 40px; padding-right: 0; }
+.orders-table td .seats { margin-bottom: 4px; }
+.orders-table tr.row-selected { background: var(--accent-soft); }
+.orders-table tr.row-past .seat-chip { color: #717171; }
+.bulk-bar { position: sticky; bottom: 16px; z-index: 30; display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px 10px 18px; border-radius: 28px; background: #303030; box-shadow: 0 4px 24px rgba(0, 0, 0, .5); width: fit-content; margin-left: auto; }
+.bulk-bar[hidden] { display: none; }
+.bulk-text { font-weight: 500; }
+
 /* ===== Адаптивность ===== */
 
 /* Широкий экран: меню можно свернуть до значков */
@@ -331,6 +361,7 @@ tr.row-past td, tr.row-past td a { color: #717171; }
     .order { position: static; }
     .movies { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 28px 16px; }
     .poster-upload { flex-direction: column; }
+    .orders { grid-template-columns: 1fr; }
 }
 
 /* Телефон: поиск открывается значком, превью фильмов во всю ширину */
@@ -386,6 +417,14 @@ tr.row-past td, tr.row-past td a { color: #717171; }
     .row-label { width: 20px; font-size: 11px; padding-right: 2px; }
     .row-label .rl-word { display: none; }
     .closed .actions .btn { flex: 1 1 100%; }
+    .chips-inline { flex-wrap: nowrap; overflow-x: auto; margin-right: -12px; padding-right: 12px; }
+    .order-card { grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
+    .order-head { flex-direction: column; }
+    .bulk-bar { width: auto; margin-left: 0; flex-wrap: wrap; border-radius: 16px; }
+    .bulk-text { flex: 1 1 100%; }
+    .main td.sel { justify-content: flex-start; min-height: 0; }
+    .main td.sel:empty { display: none; }
+    .main td .seats { justify-content: flex-end; }
     .modal { align-items: end; padding: 8px; }
     .modal-box .actions .btn { flex: 1; }
 }

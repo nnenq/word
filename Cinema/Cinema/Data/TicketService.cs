@@ -49,11 +49,12 @@ public class TicketService
             return (new(), "Места уже заняты: " + string.Join(", ", busy.Select(p => $"ряд {p.Row}, место {p.Seat}")) + ". Выберите другие.");
 
         int next = (await db.Tickets.MaxAsync(t => (int?)t.Id) ?? 0) + 1;
+        var now = DateTime.Now; // у всех билетов заказа одно время покупки — по нему билеты собираются в заказ
         var tickets = places.Select((p, i) => new Ticket
         {
             Code = $"T-{next + i:D6}", SessionId = sessionId, Row = p.Row, Seat = p.Seat, Price = session.Price,
             UserId = buyer?.Id, BuyerName = buyerName.Trim(), SoldById = cashier?.Id,
-            Channel = cashier == null ? "Сайт" : "Касса", Payment = payment,
+            Channel = cashier == null ? "Сайт" : "Касса", Payment = payment, CreatedAt = now,
         }).ToList();
         db.Tickets.AddRange(tickets);
         try
@@ -69,19 +70,37 @@ public class TicketService
         return (tickets, null);
     }
 
-    /// <summary>Возврат билета. Зритель может вернуть только свой билет и не позже чем за час до сеанса.</summary>
-    public async Task<string?> ReturnAsync(int ticketId, User by, bool isStaff)
+    /// <summary>Можно ли вернуть билет. null — можно, иначе текст причины.</summary>
+    public static string? CanReturn(Ticket t, int userId, bool isStaff)
     {
-        var t = await db.Tickets.Include(x => x.Session).FirstOrDefaultAsync(x => x.Id == ticketId);
-        if (t == null) return "Билет не найден.";
-        if (t.Status == TicketStatus.Returned) return "Билет уже возвращён.";
-        if (!isStaff && t.UserId != by.Id) return "Можно вернуть только свой билет.";
-        if (t.Session.StartTime <= DateTime.Now) return "Сеанс уже начался, вернуть билет нельзя.";
+        if (t.Status == TicketStatus.Returned) return "билет уже возвращён.";
+        if (!isStaff && t.UserId != userId) return "можно вернуть только свой билет.";
+        if (t.Session.StartTime <= DateTime.Now) return "сеанс уже начался, вернуть билет нельзя.";
         if (!isStaff && t.Session.StartTime - DateTime.Now < ViewerReturnDeadline)
-            return "Вернуть билет через сайт можно не позже чем за час до начала сеанса. Обратитесь в кассу кинотеатра.";
-        t.Status = TicketStatus.Returned;
-        t.ReturnedAt = DateTime.Now;
-        await db.SaveChangesAsync();
+            return "через сайт билет можно вернуть не позже чем за час до начала сеанса. Обратитесь в кассу кинотеатра.";
         return null;
+    }
+
+    /// <summary>Возврат одного билета.</summary>
+    public async Task<string?> ReturnAsync(int ticketId, User by, bool isStaff) =>
+        (await ReturnManyAsync(new[] { ticketId }, by, isStaff)).Error;
+
+    /// <summary>
+    /// Возврат нескольких билетов сразу (например, всего заказа). Либо возвращаются все, либо ни одного:
+    /// если хотя бы один билет вернуть нельзя, ничего не меняется и возвращается текст ошибки.
+    /// </summary>
+    public async Task<(List<Ticket> Returned, string? Error)> ReturnManyAsync(IEnumerable<int> ticketIds, User by, bool isStaff)
+    {
+        var ids = ticketIds.Distinct().ToList();
+        if (ids.Count == 0) return (new(), "Не выбрано ни одного билета.");
+        var list = await db.Tickets.Include(t => t.Session).Where(t => ids.Contains(t.Id)).ToListAsync();
+        if (list.Count != ids.Count) return (new(), "Билет не найден.");
+        foreach (var t in list)
+            if (CanReturn(t, by.Id, isStaff) is string why)
+                return (new(), $"Билет {t.Code}: {why}");
+        var now = DateTime.Now;
+        foreach (var t in list) { t.Status = TicketStatus.Returned; t.ReturnedAt = now; }
+        await db.SaveChangesAsync();
+        return (list, null);
     }
 }
