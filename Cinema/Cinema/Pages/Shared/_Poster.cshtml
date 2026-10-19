@@ -1,14 +1,13 @@
 @model Movie
-@* Постер фильма: картинка из базы или цветная заглушка с названием, если картинки нет *@
-<div class="poster@(Model.Poster == null ? " poster-empty" : "")" style="--h:@Fmt.Hue(Model.Id)">
+@* Превью фильма 16:9: картинка из базы или цветная заглушка с названием, если картинки нет *@
+<div class="thumb@(Model.Poster == null ? " thumb-empty" : "")" style="--h:@Fmt.Hue(Model.Id)">
     @if (Model.Poster != null)
     {
         <img src="@Model.Poster" alt="Постер фильма «@Model.Title»" loading="lazy" />
     }
     else
     {
-        <span class="poster-title">@Model.Title</span>
-        <span class="poster-genre">@Model.Genre?.Name</span>
+        <span class="thumb-title">@Model.Title</span>
     }
-    <span class="poster-age">@Model.AgeRating</span>
+    <span class="thumb-badge">@Fmt.Clock(Model.DurationMin)</span>
 </div>

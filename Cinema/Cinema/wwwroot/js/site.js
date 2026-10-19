@@ -21,7 +21,6 @@ const modal = (() => {
             text.textContent = message;
             cancel.hidden = !!onlyOk;
             ok.textContent = onlyOk ? "Понятно" : "Да";
-            ok.classList.toggle("btn-danger-solid", !onlyOk && /удалить|вернуть|возврат/i.test(message));
             box.hidden = false;
             document.body.classList.add("no-scroll");
             ok.focus();
@@ -42,11 +41,32 @@ document.addEventListener("submit", async e => {
     }
 });
 
-// Меню-«бургер» на телефоне
-document.querySelector(".burger")?.addEventListener("click", e => {
-    const open = document.body.classList.toggle("menu-open");
-    e.currentTarget.setAttribute("aria-expanded", open);
-});
+// Кнопка меню: на широком экране сворачивает меню до значков, на узком — открывает его поверх страницы
+(() => {
+    const burger = document.querySelector(".burger");
+    const scrim = document.querySelector(".scrim");
+    const body = document.body;
+    try { if (localStorage.getItem("menu-mini") === "1") body.classList.add("mini"); } catch { }
+    function setOpen(open) {
+        body.classList.toggle("menu-open", open);
+        scrim.hidden = !open;
+        burger.setAttribute("aria-expanded", open);
+    }
+    burger.addEventListener("click", () => {
+        if (innerWidth >= 1200) {
+            const mini = body.classList.toggle("mini");
+            try { localStorage.setItem("menu-mini", mini ? "1" : "0"); } catch { }
+        } else setOpen(!body.classList.contains("menu-open"));
+    });
+    scrim.addEventListener("click", () => setOpen(false));
+    addEventListener("resize", () => { if (innerWidth >= 1200) setOpen(false); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") setOpen(false); });
+
+    // Поиск на телефоне открывается значком лупы
+    const input = document.querySelector(".search input");
+    document.querySelector(".search-open").addEventListener("click", () => { body.classList.add("search-open"); input.focus(); });
+    document.querySelector(".search-back").addEventListener("click", () => body.classList.remove("search-open"));
+})();
 
 // Подписи к ячейкам таблиц: на телефоне строки таблицы показываются карточками
 document.querySelectorAll(".main table").forEach(table => {

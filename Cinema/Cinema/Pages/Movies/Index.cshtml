@@ -2,20 +2,26 @@
 @model Cinema.Pages.Movies.IndexModel
 @{ ViewData["Title"] = "Афиша"; }
 
+@{
+    // Ссылка на жанр с сохранением остальных условий поиска
+    string GenreLink(int? g) => "/Movies?" + string.Join("&", new[] {
+        g == null ? null : "genre=" + g, string.IsNullOrEmpty(Model.Q) ? null : "q=" + Uri.EscapeDataString(Model.Q),
+        string.IsNullOrEmpty(Model.Age) ? null : "age=" + Uri.EscapeDataString(Model.Age), Model.Today ? "today=true" : null }.Where(x => x != null));
+}
+<nav class="chips" aria-label="Жанры">
+    <a class="chip @(Model.Genre == null ? "active" : "")" href="@GenreLink(null)">Все</a>
+    @foreach (var g in Model.Genres)
+    {
+        <a class="chip @(Model.Genre == g.Id ? "active" : "")" href="@GenreLink(g.Id)">@g.Name</a>
+    }
+</nav>
+
 <div class="page-head"><h1>Афиша</h1><span class="muted">Найдено фильмов: @Model.Movies.Count</span></div>
 
 <form method="get" class="filters">
+    @if (Model.Genre != null) { <input type="hidden" name="genre" value="@Model.Genre" /> }
     <label class="grow">Поиск по названию или режиссёру
         <input type="search" name="q" value="@Model.Q" placeholder="Например, «звёздный»" />
-    </label>
-    <label>Жанр
-        <select name="genre">
-            <option value="">Все жанры</option>
-            @foreach (var g in Model.Genres)
-            {
-                <option value="@g.Id" selected="@(Model.Genre == g.Id)">@g.Name</option>
-            }
-        </select>
     </label>
     <label>Возраст
         <select name="age">
@@ -31,7 +37,7 @@
     </label>
     <div class="filter-buttons">
         <button class="btn btn-accent" type="submit">Найти</button>
-        <a class="btn btn-ghost" href="/Movies">Сбросить</a>
+        <a class="btn btn-tonal" href="/Movies">Сбросить</a>
     </div>
 </form>
 
@@ -42,13 +48,6 @@
 <div class="movies">
     @foreach (var m in Model.Movies)
     {
-        <a class="movie-card" href="/Movies/Details/@m.Id">
-            <partial name="_Poster" model="m" />
-            <div class="body">
-                <b class="title">@m.Title</b>
-                <span class="meta">@m.Genre.Name · @m.Year · @Fmt.Duration(m.DurationMin)</span>
-                <span class="meta">Режиссёр: @m.Director</span>
-            </div>
-        </a>
+        <partial name="_MovieCard" model="m" />
     }
 </div>

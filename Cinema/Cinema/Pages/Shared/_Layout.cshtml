@@ -4,88 +4,123 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b0a10" />
+    <meta name="theme-color" content="#0f0f0f" />
     <title>@ViewData["Title"] — Кинотеатр «Звезда»</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+@{
+    var path = (Context.Request.Path.Value ?? "/").ToLowerInvariant();
+    // Пункт меню подсвечивается, если открыт его раздел
+    string Act(string href) => (href == "/" ? path == "/" : path == href.ToLowerInvariant() || path.StartsWith(href.ToLowerInvariant() + "/")) ? "active" : "";
+    var authed = User.Identity?.IsAuthenticated == true;
+}
 <header class="top">
-    <div class="wrap top-row">
-        <a class="logo" href="/"><span class="logo-mark">★</span> Кинотеатр «Звезда»</a>
-        <button class="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="topNav"><span></span></button>
-        <div class="top-nav" id="topNav">
-        <nav class="menu">
-            <a href="/">Главная</a>
-            <a href="/Movies">Афиша</a>
-            <a href="/Schedule">Расписание</a>
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <a href="/Cabinet">Личный кабинет</a>
-                @if (User.IsCashier())
-                {
-                    <a href="/Cashier">Касса</a>
-                    <a href="/Cashier/Tickets">Билеты</a>
-                }
-                @if (User.IsAdmin())
-                {
-                    <a href="/Admin" class="menu-admin">Админ-панель</a>
-                }
-            }
-        </nav>
-        <div class="auth">
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <span class="who">@User.FullName() <small>@User.RoleName()</small></span>
-                <form method="post" asp-page="/Account/Logout" class="inline">
-                    <button class="btn btn-ghost btn-sm" type="submit">Выйти</button>
-                </form>
-            }
-            else
-            {
-                <a class="btn btn-ghost btn-sm" href="/Account/Login">Войти</a>
-                <a class="btn btn-accent btn-sm" href="/Account/Register">Регистрация</a>
-            }
-        </div>
-        </div>
+    <div class="top-left">
+        <button class="icon-btn burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="side">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <a class="logo" href="/" aria-label="Кинотеатр «Звезда» — на главную">
+            <span class="logo-icon"><svg viewBox="0 0 24 24"><path d="M9 7.5v9l7.5-4.5z"/></svg></span>
+            <span class="logo-text">Звезда<small>кинотеатр</small></span>
+        </a>
+    </div>
+    <form class="search" method="get" action="/Movies" role="search">
+        <button class="icon-btn search-back" type="button" aria-label="Закрыть поиск">
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <input type="search" name="q" placeholder="Поиск фильма" aria-label="Поиск фильма" value="@(path == "/movies" ? Context.Request.Query["q"].ToString() : "")" />
+        <button class="search-btn" type="submit" aria-label="Найти">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </button>
+    </form>
+    <div class="top-right">
+        <button class="icon-btn search-open" type="button" aria-label="Поиск">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </button>
+        @if (authed)
+        {
+            <a class="who" href="/Cabinet" title="Личный кабинет">
+                <span class="avatar">@((User.FullName() + "?")[..1])</span>
+                <span class="who-text">@User.FullName()<small>@User.RoleName()</small></span>
+            </a>
+            <form method="post" asp-page="/Account/Logout" class="inline">
+                <button class="btn btn-outline btn-sm" type="submit">Выйти</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-outline btn-sm signin" href="/Account/Login">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                Войти
+            </a>
+        }
     </div>
 </header>
 
-@if (ViewData["AdminNav"] is true)
-{
-    <div class="subnav">
-        <div class="wrap">
-            <a href="/Admin">Обзор</a>
-            <a href="/Admin/Movies">Фильмы</a>
-            <a href="/Admin/Genres">Жанры</a>
-            <a href="/Admin/Halls">Залы</a>
-            <a href="/Admin/Sessions">Сеансы</a>
-            <a href="/Admin/Users">Пользователи</a>
-            <a href="/Cashier">Касса</a>
-            <a href="/Cashier/Tickets">Билеты</a>
-        </div>
-    </div>
-}
+<aside class="side" id="side">
+    <nav class="side-nav">
+        <a class="@Act("/")" href="/"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span>Главная</span></a>
+        <a class="@Act("/Movies")" href="/Movies"><svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg><span>Афиша</span></a>
+        <a class="@Act("/Schedule")" href="/Schedule"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg><span>Расписание</span></a>
+        @if (authed)
+        {
+            <hr />
+            <a class="@Act("/Cabinet")" href="/Cabinet"><svg viewBox="0 0 24 24"><path d="M22 10V6c0-1.11-.9-2-2-2H4c-1.1 0-1.99.89-1.99 2v4c1.1 0 1.99.9 1.99 2s-.89 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2z"/></svg><span>Мои билеты</span></a>
+            @if (User.IsCashier())
+            {
+                <a class="@(path == "/cashier" ? "active" : "")" href="/Cashier"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg><span>Касса</span></a>
+                <a class="@Act("/Cashier/Tickets")" href="/Cashier/Tickets"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span>Проданные билеты</span></a>
+            }
+            @if (User.IsAdmin())
+            {
+                <a class="@Act("/Admin")" href="/Admin"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span>Админ-панель</span></a>
+            }
+        }
+        else
+        {
+            <hr />
+            <p class="side-hint">Войдите, чтобы покупать билеты и видеть их в личном кабинете.</p>
+            <a class="btn btn-outline btn-sm side-signin" href="/Account/Register">Регистрация</a>
+        }
+    </nav>
+    <p class="side-foot">Кинотеатр «Звезда» · система продажи билетов · вариант 13, Кирчу Игорь</p>
+</aside>
+<div class="scrim" hidden></div>
 
-<main class="wrap main">
-    @if (TempData["Success"] is string ok)
+<div class="content">
+    @if (ViewData["AdminNav"] is true)
     {
-        <div class="alert alert-ok" role="status">@ok</div>
+        <nav class="chips subnav" aria-label="Разделы админ-панели">
+            <a class="chip @(path == "/admin" ? "active" : "")" href="/Admin">Обзор</a>
+            <a class="chip @(path.StartsWith("/admin/movie") ? "active" : "")" href="/Admin/Movies">Фильмы</a>
+            <a class="chip @Act("/Admin/Genres")" href="/Admin/Genres">Жанры</a>
+            <a class="chip @(path.StartsWith("/admin/hall") ? "active" : "")" href="/Admin/Halls">Залы</a>
+            <a class="chip @(path.StartsWith("/admin/session") ? "active" : "")" href="/Admin/Sessions">Сеансы</a>
+            <a class="chip @(path.StartsWith("/admin/user") ? "active" : "")" href="/Admin/Users">Пользователи</a>
+            <a class="chip" href="/Cashier">Касса</a>
+            <a class="chip" href="/Cashier/Tickets">Билеты</a>
+        </nav>
     }
-    @if (TempData["Error"] is string err)
-    {
-        <div class="alert alert-bad" role="alert">@err</div>
-    }
-    @RenderBody()
-</main>
-
-<footer class="foot">
-    <div class="wrap">Кинотеатр «Звезда» · информационная система продажи билетов · индивидуальная практическая работа, вариант 13 (Кирчу Игорь)</div>
-</footer>
+    <main class="main">
+        @if (TempData["Success"] is string ok)
+        {
+            <div class="alert alert-ok" role="status">@ok</div>
+        }
+        @if (TempData["Error"] is string err)
+        {
+            <div class="alert alert-bad" role="alert">@err</div>
+        }
+        @RenderBody()
+    </main>
+</div>
 <div class="modal" id="modal" hidden>
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalText">
         <p id="modalText"></p>
         <div class="actions end">
-            <button type="button" class="btn btn-ghost" data-modal="cancel">Отмена</button>
+            <button type="button" class="btn btn-text" data-modal="cancel">Отмена</button>
             <button type="button" class="btn btn-accent" data-modal="ok">Да</button>
         </div>
     </div>

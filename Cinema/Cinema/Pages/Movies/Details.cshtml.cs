@@ -13,6 +13,8 @@ public class DetailsModel : PageModel
 
     public Movie Movie { get; set; } = null!;
     public List<IGrouping<DateTime, Session>> Days { get; set; } = new();
+    /// <summary>Другие фильмы в прокате — список справа, как рекомендации.</summary>
+    public List<Movie> Others { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -22,6 +24,7 @@ public class DetailsModel : PageModel
         var sessions = await db.Sessions.Include(s => s.Hall)
             .Where(s => s.MovieId == id && s.StartTime > DateTime.Now).OrderBy(s => s.StartTime).ToListAsync();
         Days = sessions.GroupBy(s => s.StartTime.Date).ToList();
+        Others = await db.Movies.Include(m => m.Genre).Where(m => m.IsActive && m.Id != id).OrderBy(m => m.Title).Take(6).ToListAsync();
         return Page();
     }
 }

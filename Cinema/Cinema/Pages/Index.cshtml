@@ -2,47 +2,46 @@
 @model IndexModel
 @{ ViewData["Title"] = "Главная"; }
 
-<section class="hero" style="--cover:url('/img/hall.jpg')">
-    <div>
-        <h1>Билеты в кино — онлайн и на кассе</h1>
-        <p>Информационная система кинотеатра «Звезда» автоматизирует работу с фильмами, сеансами и продажей билетов.
+<nav class="chips" aria-label="Жанры">
+    <a class="chip active" href="/">Все</a>
+    @foreach (var g in Model.Genres)
+    {
+        <a class="chip" href="/Movies?genre=@g.Id">@g.Name</a>
+    }
+</nav>
+
+<section class="intro">
+    <div class="intro-text">
+        <h1>Кинотеатр «Звезда»: билеты онлайн и на кассе</h1>
+        <p>Информационная система кинотеатра автоматизирует работу с фильмами, сеансами и продажей билетов.
            Зрители выбирают сеанс и места на схеме зала и покупают билеты на сайте, кассиры продают и возвращают билеты на кассе,
            администратор ведёт афишу, расписание, залы и пользователей.</p>
         <div class="actions">
             <a class="btn btn-accent" href="/Schedule">Расписание на сегодня</a>
             @if (User.Identity?.IsAuthenticated != true)
             {
-                <a class="btn btn-ghost" href="/Account/Register">Зарегистрироваться</a>
+                <a class="btn btn-tonal" href="/Account/Register">Зарегистрироваться</a>
             }
         </div>
     </div>
-    <div class="hero-stats">
-        <h3>Сегодня в кинотеатре</h3>
-        <ul>
-            <li>Фильмов в прокате: <b>@Model.MoviesCount</b></li>
-            <li>Сеансов сегодня: <b>@Model.SessionsToday</b></li>
-            <li>Ближайший сеанс: <b>@(Model.Next == null ? "—" : $"{(Model.Next.StartTime.Date == DateTime.Today ? "" : Fmt.Day(Model.Next.StartTime).ToLower() + ", ")}{Model.Next.StartTime:HH:mm}, «{Model.Next.Movie.Title}»")</b></li>
-            <li>Залов: <b>@Model.HallsCount</b></li>
-        </ul>
-    </div>
+    <dl class="intro-stats">
+        <div><dt>Фильмов в прокате</dt><dd>@Model.MoviesCount</dd></div>
+        <div><dt>Сеансов сегодня</dt><dd>@Model.SessionsToday</dd></div>
+        <div><dt>Залов</dt><dd>@Model.HallsCount</dd></div>
+        <div><dt>Ближайший сеанс</dt><dd class="small-dd">@(Model.Next == null ? "—" : $"{(Model.Next.StartTime.Date == DateTime.Today ? "" : Fmt.Day(Model.Next.StartTime).ToLower() + ", ")}{Model.Next.StartTime:HH:mm}, «{Model.Next.Movie.Title}»")</dd></div>
+    </dl>
 </section>
 
-<section class="features">
-    <div class="panel feature"><h3>Гость</h3><p>Смотрит афишу, расписание и описание фильмов без регистрации.</p></div>
-    <div class="panel feature"><h3>Зритель</h3><p>Покупает билеты с выбором мест, видит свои билеты в личном кабинете, возвращает их.</p></div>
-    <div class="panel feature"><h3>Кассир и администратор</h3><p>Кассир продаёт и возвращает билеты на кассе. Администратор управляет фильмами, залами, сеансами и пользователями.</p></div>
+<section class="roles">
+    <div class="role"><b>Гость</b><span>Смотрит афишу, расписание и описание фильмов без регистрации.</span></div>
+    <div class="role"><b>Зритель</b><span>Покупает билеты с выбором мест, видит свои билеты в личном кабинете, возвращает их.</span></div>
+    <div class="role"><b>Кассир и администратор</b><span>Кассир продаёт и возвращает билеты на кассе. Администратор управляет фильмами, залами, сеансами и пользователями.</span></div>
 </section>
 
-<div class="page-head"><h2>Сейчас в прокате</h2><a class="link-more" href="/Movies">Вся афиша</a></div>
+<div class="page-head"><h2>Сейчас в прокате</h2><a class="btn btn-text btn-sm" href="/Movies">Вся афиша</a></div>
 <div class="movies">
     @foreach (var m in Model.Movies)
     {
-        <a class="movie-card" href="/Movies/Details/@m.Id">
-            <partial name="_Poster" model="m" />
-            <div class="body">
-                <b class="title">@m.Title</b>
-                <span class="meta">@m.Genre.Name · @Fmt.Duration(m.DurationMin)</span>
-            </div>
-        </a>
+        <partial name="_MovieCard" model="m" />
     }
 </div>

@@ -11,6 +11,7 @@ public class IndexModel : PageModel
     public IndexModel(CinemaDb db) => this.db = db;
 
     public List<Movie> Movies { get; set; } = new();
+    public List<Genre> Genres { get; set; } = new();
     public int MoviesCount { get; set; }
     public int SessionsToday { get; set; }
     public int HallsCount { get; set; }
@@ -19,6 +20,7 @@ public class IndexModel : PageModel
     public async Task OnGetAsync()
     {
         Movies = await db.Movies.Include(m => m.Genre).Where(m => m.IsActive).OrderBy(m => m.Title).Take(8).ToListAsync();
+        Genres = await db.Genres.Where(g => g.Movies.Any(m => m.IsActive)).OrderBy(g => g.Name).ToListAsync();
         MoviesCount = await db.Movies.CountAsync(m => m.IsActive);
         var tomorrow = DateTime.Today.AddDays(1);
         SessionsToday = await db.Sessions.CountAsync(s => s.StartTime >= DateTime.Today && s.StartTime < tomorrow);

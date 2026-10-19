@@ -1,0 +1,13 @@
+@model Movie
+@* Карточка фильма в сетке, как превью видео: картинка, значок возраста, название и подписи *@
+<a class="movie-card" href="/Movies/Details/@Model.Id">
+    <partial name="_Poster" model="Model" />
+    <div class="card-info">
+        <span class="avatar avatar-age">@Model.AgeRating</span>
+        <div class="card-text">
+            <b class="title">@Model.Title</b>
+            <span class="meta">@Model.Genre?.Name · реж. @Model.Director</span>
+            <span class="meta">@Model.Year · @Fmt.Duration(Model.DurationMin)</span>
+        </div>
+    </div>
+</a>

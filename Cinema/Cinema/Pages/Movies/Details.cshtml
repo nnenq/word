@@ -1,50 +1,74 @@
 @page "{id:int}"
 @model Cinema.Pages.Movies.DetailsModel
-@{ ViewData["Title"] = Model.Movie.Title; }
+@{ ViewData["Title"] = Model.Movie.Title; var m = Model.Movie; }
 
-<a class="back" href="/Movies">Вся афиша</a>
-<div class="movie-page" style="@(Model.Movie.Poster == null ? "" : $"--cover:url('{Model.Movie.Poster}')")">
-    <partial name="_Poster" model="Model.Movie" />
-    <div class="movie-info">
-        <h1>@Model.Movie.Title</h1>
-        <div class="chips">
-            <span class="pill pill-accent">@Model.Movie.AgeRating</span>
-            <span class="pill">@Model.Movie.Genre.Name</span>
-            <span class="pill">@Model.Movie.Year</span>
-            <span class="pill">@Fmt.Duration(Model.Movie.DurationMin)</span>
+<div class="watch">
+    <div class="watch-main">
+        <partial name="_Poster" model="m" />
+        <h1 class="watch-title">@m.Title</h1>
+        <div class="watch-row">
+            <div class="channel">
+                <span class="avatar avatar-age">@m.AgeRating</span>
+                <div><b>@m.Genre.Name</b><span class="meta">Режиссёр: @m.Director</span></div>
+            </div>
+            <a class="btn btn-tonal btn-sm" href="/Movies">Вся афиша</a>
         </div>
-        <dl class="facts">
-            <dt>Режиссёр</dt><dd>@Model.Movie.Director</dd>
-        </dl>
-        <p class="lead">@Model.Movie.Description</p>
+        <div class="description">
+            <b>@m.Year · @Fmt.Duration(m.DurationMin) · @m.AgeRating</b>
+            <p>@m.Description</p>
+        </div>
+    </div>
 
-        <h2>Сеансы</h2>
-        @if (!Model.Movie.IsActive)
+    <aside class="watch-side">
+        <section class="side-box">
+            <h2>Сеансы</h2>
+            @if (!m.IsActive)
+            {
+                <div class="alert alert-info">Фильм снят с проката.</div>
+            }
+            else if (Model.Days.Count == 0)
+            {
+                <div class="alert alert-info">Ближайших сеансов нет.</div>
+            }
+            @foreach (var day in Model.Days)
+            {
+                <div class="day-block">
+                    <h3>@Fmt.Day(day.Key)</h3>
+                    <div class="times">
+                        @foreach (var s in day)
+                        {
+                            <a class="time" href="/Tickets/Buy/@s.Id" title="@s.Hall.Name">
+                                <b>@s.StartTime.ToString("HH:mm")</b>
+                                <span>@Fmt.Money(s.Price) · @s.Hall.Name</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+            @if (User.Identity?.IsAuthenticated != true && Model.Days.Count > 0)
+            {
+                <p class="muted small">Чтобы купить билет, <a href="/Account/Login">войдите</a> или <a href="/Account/Register">зарегистрируйтесь</a>.</p>
+            }
+        </section>
+
+        @if (Model.Others.Count > 0)
         {
-            <div class="alert alert-info">Фильм снят с проката.</div>
-        }
-        else if (Model.Days.Count == 0)
-        {
-            <div class="alert alert-info">Ближайших сеансов нет.</div>
-        }
-        @foreach (var day in Model.Days)
-        {
-            <div class="day-block">
-                <h3>@Fmt.Day(day.Key)</h3>
-                <div class="times">
-                    @foreach (var s in day)
+            <section>
+                <h2 class="others-head">Другие фильмы</h2>
+                <div class="others">
+                    @foreach (var o in Model.Others)
                     {
-                        <a class="time" href="/Tickets/Buy/@s.Id" title="@s.Hall.Name">
-                            <b>@s.StartTime.ToString("HH:mm")</b>
-                            <span>@Fmt.Money(s.Price) · @s.Hall.Name</span>
+                        <a class="mini-card" href="/Movies/Details/@o.Id">
+                            <partial name="_Poster" model="o" />
+                            <div>
+                                <b class="title">@o.Title</b>
+                                <span class="meta">@o.Genre.Name</span>
+                                <span class="meta">@o.Year · @o.AgeRating</span>
+                            </div>
                         </a>
                     }
                 </div>
-            </div>
+            </section>
         }
-        @if (User.Identity?.IsAuthenticated != true && Model.Days.Count > 0)
-        {
-            <p class="muted small">Чтобы купить билет, <a href="/Account/Login">войдите</a> или <a href="/Account/Register">зарегистрируйтесь</a>.</p>
-        }
-    </div>
+    </aside>
 </div>
