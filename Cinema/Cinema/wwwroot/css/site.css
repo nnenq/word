@@ -310,6 +310,39 @@ tr.row-past td, tr.row-past td a { color: #717171; }
 .bulk-bar[hidden] { display: none; }
 .bulk-text { font-weight: 500; }
 
+/* Электронный чек: белый «бумажный» лист, печатается без меню */
+.receipt-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; max-width: 520px; margin: 0 auto 16px; }
+.receipt-done { display: flex; gap: 16px; align-items: center; max-width: 520px; margin: 0 auto 16px; }
+.receipt-done h2 { margin: 0 0 2px; font-size: 18px; }
+.receipt-done p { margin: 0; }
+.done-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); font-size: 22px; font-weight: 700; flex: none; }
+.receipt { max-width: 520px; margin: 0 auto; background: #fff; color: #222; border-radius: 4px; padding: 28px 28px 24px; font: 14px/1.5 "Roboto Mono", Consolas, monospace;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+.receipt-head { text-align: center; border-bottom: 1px dashed #999; padding-bottom: 14px; margin-bottom: 14px; color: #555; font-size: 12px; }
+.receipt-logo { font: 700 18px var(--font); color: #111; margin-bottom: 2px; }
+.receipt h1 { font-size: 16px; color: #111; margin: 12px 0 2px; }
+.receipt-info { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0 0 14px; }
+.receipt-info dt { color: #777; }
+.receipt-info dd { margin: 0; color: #111; }
+.receipt-table { border-top: 1px dashed #999; border-bottom: 1px dashed #999; }
+.receipt-table th { color: #777; border-bottom: 1px solid #ddd; padding: 6px 4px; font-size: 12px; }
+.receipt-table td { color: #111; border-bottom: 0; padding: 4px; }
+.receipt-table tbody tr:hover { background: transparent; }
+.receipt-returned td { color: #999 !important; text-decoration: line-through; }
+.receipt-total { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px dashed #999; }
+.receipt-total > div:not(.small) { display: flex; justify-content: space-between; gap: 12px; }
+.receipt-total .muted { color: #777; }
+.receipt-sum { font-size: 18px; color: #111; }
+.receipt-foot { text-align: center; padding-top: 12px; color: #555; font-size: 12px; display: grid; gap: 4px; }
+.receipt-foot b { color: #111; font-size: 13px; }
+@media print {
+    .top, .side, .scrim, .subnav, .no-print, .alert, .modal { display: none !important; }
+    body { background: #fff; }
+    .content, .main { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+    .receipt { box-shadow: none; max-width: 110mm; margin: 0 auto; padding: 0; }
+    @page { margin: 10mm; }
+}
+
 /* ===== Адаптивность ===== */
 
 /* Широкий экран: меню можно свернуть до значков */
@@ -417,6 +450,16 @@ tr.row-past td, tr.row-past td a { color: #717171; }
     .row-label { width: 20px; font-size: 11px; padding-right: 2px; }
     .row-label .rl-word { display: none; }
     .closed .actions .btn { flex: 1 1 100%; }
+    .receipt { padding: 18px 14px; font-size: 13px; }
+    .receipt-actions .btn { flex: 1 1 100%; }
+    /* В чеке таблица остаётся таблицей, а не карточками */
+    .main .receipt-table { display: table; }
+    .main .receipt-table thead { display: table-header-group; }
+    .main .receipt-table tbody { display: table-row-group; }
+    .main .receipt-table tr { display: table-row; background: transparent; padding: 0; border-radius: 0; }
+    .main .receipt-table td { display: table-cell; text-align: left; min-height: 0; padding: 4px; border: 0; }
+    .main .receipt-table td.r { text-align: right; }
+    .main .receipt-table td::before { content: none; }
     .chips-inline { flex-wrap: nowrap; overflow-x: auto; margin-right: -12px; padding-right: 12px; }
     .order-card { grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
     .order-head { flex-direction: column; }

@@ -61,6 +61,8 @@ public class BuyModel : AppPage
 
         var places = string.Join(", ", sold.Select(t => $"ряд {t.Row} место {t.Seat}"));
         Success($"Оформлено билетов: {sold.Count} на сумму {Fmt.Money(sold.Sum(t => t.Price))} ({places}). Номера: {string.Join(", ", sold.Select(t => t.Code))}.");
-        return staff ? Redirect("/Cashier/Tickets?session=" + id) : Redirect("/Cabinet");
+        // После оплаты сразу открывается чек: зритель сохраняет его, кассир печатает покупателю.
+        // У зрителя чек потом всегда лежит в личном кабинете, у кассира — в «Проданных билетах».
+        return Redirect($"/Cabinet/Receipt/{sold[0].Id}?new=true");
     }
 }

@@ -62,6 +62,7 @@
                         <div class="order-foot">
                             <span class="order-sum">@o.Tickets.Count @AppPage.Plural(o.Tickets.Count, "билет", "билета", "билетов") · <b>@Fmt.Money(o.TotalSum)</b>
                                 <span class="muted small">· куплено @o.First.CreatedAt.ToString("dd.MM HH:mm")</span></span>
+                            <a class="btn btn-tonal btn-sm" href="/Cabinet/Receipt/@o.First.Id">Чек</a>
                             @if (can.Count > 0)
                             {
                                 <form method="post" asp-page-handler="Return" asp-route-show="@Model.Show" class="inline"

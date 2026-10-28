@@ -1,0 +1,88 @@
+@page "{id:int}"
+@model Cinema.Pages.Cabinet.ReceiptModel
+@{
+    ViewData["Title"] = "Чек № " + Model.Number;
+    var o = Model.Order; var s = o.Session; var f = o.First;
+    var returned = o.Tickets.Where(t => t.Status == TicketStatus.Returned).ToList();
+}
+
+@if (Model.New)
+{
+    <div class="panel receipt-done no-print">
+        <div class="done-icon" aria-hidden="true">✓</div>
+        <div>
+            <h2>@(Model.ForStaff ? "Продажа оформлена" : "Оплата прошла, билеты ваши")</h2>
+            <p class="muted">@(Model.ForStaff
+                ? $"Получите с покупателя {Fmt.Money(o.TotalSum)} ({f.Payment.ToLower()}) и выдайте распечатанный чек."
+                : "Чек сохранён в личном кабинете — его можно открыть в любой момент. Покажите его или номер билета на входе в зал.")</p>
+        </div>
+    </div>
+}
+
+<div class="receipt-actions no-print">
+    @if (Model.ForStaff)
+    {
+        <button class="btn btn-accent" type="button" onclick="window.print()">Распечатать чек</button>
+        @if (!o.Started) { <a class="btn btn-tonal" href="/Tickets/Buy/@s.Id">Продать ещё на этот сеанс</a> }
+        <a class="btn btn-tonal" href="/Cashier">К кассе</a>
+        <a class="btn btn-text" href="/Cashier/Tickets?q=@f.Code">Заказ в «Проданных билетах»</a>
+    }
+    else
+    {
+        <button class="btn btn-accent" type="button" onclick="window.print()">Распечатать или сохранить в PDF</button>
+        <a class="btn btn-tonal" href="/Cabinet?show=all">Мои билеты</a>
+    }
+</div>
+
+<article class="receipt">
+    <header class="receipt-head">
+        <div class="receipt-logo">★ Кинотеатр «Звезда»</div>
+        <div>ООО «Звезда» · г. Москва, ул. Киношная, 1</div>
+        <h1>Кассовый чек № @Model.Number</h1>
+        <div>Приход · @f.CreatedAt.ToString("dd.MM.yyyy HH:mm")</div>
+    </header>
+
+    <dl class="receipt-info">
+        <dt>Покупатель</dt><dd>@f.BuyerName</dd>
+        <dt>Способ продажи</dt><dd>@(f.Channel == "Сайт" ? "Онлайн, на сайте" : "Касса кинотеатра")</dd>
+        @if (f.SoldBy != null) { <dt>Кассир</dt><dd>@f.SoldBy.FullName</dd> }
+        <dt>Фильм</dt><dd>@s.Movie.Title (@s.Movie.AgeRating)</dd>
+        <dt>Сеанс</dt><dd>@s.StartTime.ToString("dd.MM.yyyy, HH:mm") · @Fmt.Duration(s.Movie.DurationMin)</dd>
+        <dt>Зал</dt><dd>@s.Hall.Name</dd>
+    </dl>
+
+    <table class="receipt-table">
+        <thead><tr><th>Билет</th><th>Место</th><th class="r">Цена</th></tr></thead>
+        <tbody>
+        @foreach (var t in o.Tickets)
+        {
+            <tr class="@(t.Status == TicketStatus.Returned ? "receipt-returned" : "")">
+                <td>@t.Code</td>
+                <td>Ряд @t.Row, место @t.Seat</td>
+                <td class="r">@Fmt.Money(t.Price)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <div class="receipt-total">
+        <div><span>Оплачено (@f.Payment.ToLower())</span><b>@Fmt.Money(o.TotalSum)</b></div>
+        @if (returned.Count > 0)
+        {
+            <div><span>Возврат: @returned.Count @AppPage.Plural(returned.Count, "билет", "билета", "билетов"), @returned.Max(t => t.ReturnedAt)?.ToString("dd.MM.yyyy HH:mm")</span><b>−@Fmt.Money(returned.Sum(t => t.Price))</b></div>
+            <div class="receipt-sum"><span>Итого</span><b>@Fmt.Money(o.ActiveSum)</b></div>
+        }
+        else
+        {
+            <div class="receipt-sum"><span>Итого</span><b>@Fmt.Money(o.TotalSum)</b></div>
+        }
+        <div class="muted small">В том числе НДС не облагается</div>
+    </div>
+
+    <footer class="receipt-foot">
+        @if (o.AllReturned) { <b>Все билеты заказа возвращены.</b> }
+        else if (o.Started) { <b>Сеанс состоялся.</b> }
+        else { <b>Покажите чек или номер билета на входе в зал.</b> }
+        <div>Вход в зал за 15 минут до начала сеанса. Спасибо, что выбрали «Звезду»!</div>
+    </footer>
+</article>

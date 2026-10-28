@@ -114,6 +114,8 @@ else
                             else { <span class="pill pill-ok">Действует</span> }
                         </td>
                         <td class="r">
+                            <div class="actions end">
+                            <a class="btn btn-tonal btn-sm" href="/Cabinet/Receipt/@o.First.Id" title="Чек заказа">Чек</a>
                             @if (can.Count > 0)
                             {
                                 <button class="btn btn-danger btn-sm" type="submit" name="pick" value="@canIds"
@@ -121,6 +123,7 @@ else
                                     Возврат · @Fmt.Money(can.Sum(t => t.Price))
                                 </button>
                             }
+                            </div>
                         </td>
                     </tr>
                 }
