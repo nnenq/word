@@ -1,0 +1,43 @@
+@page
+@model StudyCabinet.Pages.Account.RegisterModel
+@{ ViewData["Title"] = "Регистрация"; }
+<div class="card shadow-sm mx-auto" style="max-width:560px"><div class="card-body p-4">
+    <h1 class="h4">Регистрация студента</h1>
+    <p class="text-body-secondary small">Учётные записи преподавателей создаёт преподаватель в разделе «Управление».</p>
+    <form method="post" novalidate>
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+        <div class="mb-3">
+            <label asp-for="Input.FullName" class="form-label">ФИО</label>
+            <input asp-for="Input.FullName" class="form-control" placeholder="Иванов Иван" />
+            <span asp-validation-for="Input.FullName" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.GroupId" class="form-label">Учебная группа</label>
+            <select asp-for="Input.GroupId" asp-items="Model.Groups" class="form-select"><option value="">— выберите группу —</option></select>
+            <span asp-validation-for="Input.GroupId" class="text-danger small"></span>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label asp-for="Input.Login" class="form-label">Логин</label>
+                <input asp-for="Input.Login" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Input.Login" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="Input.Email" class="form-label">Электронная почта <span class="text-body-secondary">(необязательно)</span></label>
+                <input asp-for="Input.Email" type="email" class="form-control" />
+                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="Input.Password" class="form-label">Пароль</label>
+                <input asp-for="Input.Password" type="password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Input.Password" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="Input.Confirm" class="form-label">Повтор пароля</label>
+                <input asp-for="Input.Confirm" type="password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Input.Confirm" class="text-danger small"></span>
+            </div>
+        </div>
+        <button class="btn btn-primary w-100" type="submit">Зарегистрироваться</button>
+    </form>
+</div></div>

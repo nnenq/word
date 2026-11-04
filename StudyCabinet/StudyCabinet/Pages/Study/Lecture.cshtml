@@ -1,0 +1,226 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Study.LectureModel
+@using StudyCabinet.Pages.Shared
+@{
+    var l = Model.Lecture;
+    ViewData["Title"] = $"Лекция {l.Number}. {l.Title}";
+    var info = Model.Info;
+    var test = l.Test;
+    var hasTest = test != null && test.Questions.Count > 0;
+    var tab = Model.Tab is "theory" or "material" or "control" or "test" ? Model.Tab : "theory";
+    string Active(string t) => tab == t ? "active" : "";
+    string Show(string t) => tab == t ? "show active" : "";
+}
+
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/Study">Мои дисциплины</a></li>
+    <li class="breadcrumb-item"><a href="/Study/Discipline/@l.Topic.DisciplineId">@l.Topic.Discipline.Title</a></li>
+    <li class="breadcrumb-item active">Лекция @l.Number</li>
+</ol></nav>
+
+@if (Model.Locked)
+{
+    <div class="card mx-auto" style="max-width:640px"><div class="card-body p-4 text-center">
+        <div class="display-6 text-body-secondary mb-2"><i class="bi bi-lock-fill"></i></div>
+        <h1 class="h4">Лекция @l.Number «@l.Title» пока закрыта</h1>
+        @if (Model.Blocker != null)
+        {
+            <p class="text-body-secondary">Сначала пройдите лекцию @Model.Blocker.Lecture.Number «@Model.Blocker.Lecture.Title». Осталось:</p>
+            <ul class="list-unstyled text-start d-inline-block">
+                @foreach (var m in Model.Blocker.Missing) { <li><i class="bi bi-circle text-warning"></i> @m</li> }
+            </ul>
+            <div><a class="btn btn-primary" href="/Study/Lecture/@Model.Blocker.Lecture.Id">Перейти к лекции @Model.Blocker.Lecture.Number</a></div>
+        }
+        else { <a class="btn btn-primary" href="/Study/Discipline/@l.Topic.DisciplineId">К списку лекций</a> }
+    </div></div>
+    return;
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="mb-3">
+            <div class="text-body-secondary small">Тема @l.Topic.Order. @l.Topic.Title</div>
+            <h1 class="h3 mb-1">Лекция @l.Number. @l.Title</h1>
+            @if (!string.IsNullOrWhiteSpace(l.Description)) { <p class="text-body-secondary mb-0">@l.Description</p> }
+        </div>
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link @Active("theory")" data-bs-toggle="tab" data-bs-target="#theory" type="button" role="tab"><i class="bi bi-book"></i> Теория</button></li>
+            @if (Model.HasFile) { <li class="nav-item"><button class="nav-link @Active("material")" data-bs-toggle="tab" data-bs-target="#material" type="button" role="tab"><i class="bi bi-file-earmark-text"></i> Материал</button></li> }
+            @if (l.ControlQuestions.Count > 0) { <li class="nav-item"><button class="nav-link @Active("control")" data-bs-toggle="tab" data-bs-target="#control" type="button" role="tab"><i class="bi bi-question-circle"></i> Контрольные вопросы <span class="badge text-bg-light border">@Model.Answers.Count/@l.ControlQuestions.Count</span></button></li> }
+            @if (hasTest) { <li class="nav-item"><button class="nav-link @Active("test")" data-bs-toggle="tab" data-bs-target="#test" type="button" role="tab"><i class="bi bi-clipboard-check"></i> Тест</button></li> }
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade @Show("theory")" id="theory" role="tabpanel">
+                <div class="card"><div class="card-body theory">
+                    @if (string.IsNullOrWhiteSpace(l.Content)) { <p class="text-body-secondary">Теория лекции находится в прикреплённом файле — вкладка «Материал».</p> }
+                    else { @Html.Raw(Model.Theory) }
+                </div></div>
+            </div>
+
+            @if (Model.HasFile)
+            {
+                <div class="tab-pane fade @Show("material")" id="material" role="tabpanel">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <div class="small text-body-secondary"><i class="bi bi-paperclip"></i> @l.MaterialName · версия @l.MaterialVersion от @Fmt.DateTime(l.MaterialUpdatedAt)</div>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-primary" href="/Materials/@l.Id" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Открыть в новой вкладке</a>
+                            <a class="btn btn-sm btn-outline-secondary" href="/Materials/@l.Id?download=true"><i class="bi bi-download"></i> Скачать</a>
+                        </div>
+                    </div>
+                    @if (MaterialStore.IsPdf(l.MaterialName))
+                    {
+                        <iframe class="material-frame" src="/Materials/@l.Id?v=@l.MaterialVersion" title="@l.MaterialName"></iframe>
+                    }
+                    else if (Model.DocxHtml != null)
+                    {
+                        <div class="card"><div class="card-body theory">@Html.Raw(Model.DocxHtml)</div></div>
+                        <p class="small text-body-secondary mt-2">Показан текст документа. Картинки и оформление — в исходном файле (кнопка «Скачать»).</p>
+                    }
+                    else
+                    {
+                        <div class="card"><div class="card-body text-center py-5">
+                            <p>Этот формат открывается программой на компьютере (Word, PowerPoint, Excel и т. п.).</p>
+                            <a class="btn btn-primary" href="/Materials/@l.Id?download=true"><i class="bi bi-download"></i> Скачать @l.MaterialName</a>
+                        </div></div>
+                    }
+                </div>
+            }
+
+            @if (l.ControlQuestions.Count > 0)
+            {
+                <div class="tab-pane fade @Show("control")" id="control" role="tabpanel">
+                    <form method="post" asp-page-handler="Control" asp-route-id="@l.Id">
+                        @{ int n = 0; }
+                        @foreach (var q in l.ControlQuestions.OrderBy(q => q.Order))
+                        {
+                            Model.Answers.TryGetValue(q.Id, out var a);
+                            var st = a?.Status;
+                            var locked = Model.IsTeacher || st is AnswerStatus.Correct or AnswerStatus.Accepted or AnswerStatus.Pending;
+                            var note = st switch
+                            {
+                                AnswerStatus.Correct => "<span class=\"text-success\"><i class=\"bi bi-check-circle-fill\"></i> Верно</span>",
+                                AnswerStatus.Wrong => "<span class=\"text-danger\"><i class=\"bi bi-x-circle-fill\"></i> Неверно — исправьте ответ</span>",
+                                AnswerStatus.Pending => "<span class=\"text-warning-emphasis\"><i class=\"bi bi-hourglass-split\"></i> Ответ на проверке у преподавателя</span>",
+                                AnswerStatus.Accepted => "<span class=\"text-success\"><i class=\"bi bi-check-circle-fill\"></i> Принят преподавателем</span>",
+                                AnswerStatus.Rejected => "<span class=\"text-danger\"><i class=\"bi bi-arrow-counterclockwise\"></i> Возвращён на доработку</span>",
+                                _ => null,
+                            };
+                            if (a?.TeacherComment is { Length: > 0 } c) note += $"<div class=\"mt-1 text-body-secondary\"><i class=\"bi bi-chat-left-text\"></i> Комментарий преподавателя: {System.Net.WebUtility.HtmlEncode(c)}</div>";
+                            var result = st switch { AnswerStatus.Correct or AnswerStatus.Accepted => "correct", AnswerStatus.Wrong or AnswerStatus.Rejected => "wrong", AnswerStatus.Pending => "pending", _ => null };
+                            <partial name="_Question" model="new QuestionView { Q = q, Number = ++n, Answer = Grading.FromJson(a?.Answer), Disabled = locked, Result = result, Note = note }" />
+                        }
+                        @if (!Model.IsTeacher)
+                        {
+                            <div class="mt-3"><button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> Отправить ответы</button></div>
+                        }
+                    </form>
+                </div>
+            }
+
+            @if (hasTest)
+            {
+                <div class="tab-pane fade @Show("test")" id="test" role="tabpanel">
+                    <div class="card mb-3"><div class="card-body">
+                        <h2 class="h5">Тест по лекции</h2>
+                        <div class="row g-2 small mb-3">
+                            <div class="col-sm-6"><i class="bi bi-list-ol"></i> Вопросов: <b>@(test!.QuestionCount > 0 && test.QuestionCount < test.Questions.Count ? test.QuestionCount : test.Questions.Count)</b></div>
+                            <div class="col-sm-6"><i class="bi bi-bullseye"></i> Проходной результат: <b>@test.PassPercent%</b></div>
+                            <div class="col-sm-6"><i class="bi bi-stopwatch"></i> Время: <b>@(test.TimeLimitMinutes > 0 ? $"{test.TimeLimitMinutes} мин" : "не ограничено")</b></div>
+                            <div class="col-sm-6"><i class="bi bi-arrow-repeat"></i> Попыток: <b>@(info?.AttemptsLeft == null ? "без ограничения" : $"осталось {info.AttemptsLeft}")</b>@(test.AllowRetry ? "" : " · пересдача только с разрешения преподавателя")</div>
+                        </div>
+                        @if (Model.InProgress != null)
+                        {
+                            <a class="btn btn-warning" href="/Study/Attempt/@Model.InProgress.Id"><i class="bi bi-play-fill"></i> Продолжить начатую попытку</a>
+                        }
+                        else if (Model.IsTeacher || info!.AttemptsLeft != 0)
+                        {
+                            <form method="post" asp-page-handler="Start" asp-route-id="@l.Id">
+                                <button class="btn btn-primary" type="submit" data-confirm="@(test.TimeLimitMinutes > 0 ? $"Начать тест? На него даётся {test.TimeLimitMinutes} мин." : "Начать тест?")">
+                                    <i class="bi bi-play-fill"></i> @(Model.Attempts.Count == 0 ? "Начать тест" : info?.TestPassed == true ? "Пройти ещё раз" : "Пройти тест ещё раз")
+                                </button>
+                            </form>
+                            @if (Model.IsTeacher) { <div class="small text-body-secondary mt-2">Преподаватель может пройти тест для проверки — в отчёты это не попадает.</div> }
+                        }
+                        else
+                        {
+                            <div class="alert alert-danger mb-0">Попытки закончились. Повторите материал и обратитесь к преподавателю — он может выдать дополнительную попытку.</div>
+                        }
+                    </div></div>
+                    @if (Model.Attempts.Count > 0)
+                    {
+                        <div class="card"><div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead><tr><th>#</th><th>Дата</th><th class="text-end">Правильно</th><th class="text-end">Результат</th><th></th></tr></thead>
+                                <tbody>
+                                @{ int k = 0; }
+                                @foreach (var at in Model.Attempts)
+                                {
+                                    <tr>
+                                        <td>@(++k)</td>
+                                        <td class="text-nowrap">@Fmt.DateTime(at.FinishedAt)</td>
+                                        <td class="text-end">@at.Correct из @at.Total</td>
+                                        <td class="text-end fw-semibold">@at.Percent%</td>
+                                        <td class="text-end"><a href="/Study/Result/@at.Id" class="state @(at.Status == AttemptStatus.Passed ? "state-completed" : "state-locked")">@(at.Status == AttemptStatus.Passed ? "Сдан" : at.Status == AttemptStatus.Expired ? "Время вышло" : "Не сдан")</a></td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div></div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="sticky-panel">
+            @if (info != null)
+            {
+                <div class="card mb-3"><div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h6 mb-0">Прохождение лекции</h2><partial name="_State" model="info.State" /></div>
+                    @if (info.State == LectureState.Completed)
+                    {
+                        <p class="small text-success mb-2"><i class="bi bi-check-circle-fill"></i> Все условия выполнены @(info.Progress?.CompletedAt != null ? Fmt.DateTime(info.Progress.CompletedAt) : "").</p>
+                    }
+                    else
+                    {
+                        <div class="small text-body-secondary mb-1">Чтобы открыть следующую лекцию:</div>
+                        <ul class="list-unstyled small conditions mb-2">
+                            @foreach (var m in info.Missing) { <li><i class="bi bi-circle text-warning"></i> @m</li> }
+                        </ul>
+                    }
+                    @if (info.ControlTotal > 0)
+                    {
+                        <div class="small">Контрольные вопросы: <b>@info.ControlAnswered из @info.ControlTotal</b> отвечено, верно/принято: @info.ControlCorrect</div>
+                    }
+                    @if (info.HasTest)
+                    {
+                        <div class="small">Тест: лучший результат <b>@(info.BestPercent?.ToString() ?? "—")@(info.BestPercent != null ? "%" : "")</b>, попыток @info.AttemptsUsed</div>
+                    }
+                    @if (info.OpenedByTeacher) { <div class="small mt-2 text-info-emphasis"><i class="bi bi-unlock"></i> Лекция открыта преподавателем вручную.</div> }
+                </div></div>
+            }
+            else
+            {
+                <div class="alert alert-info small">Вы смотрите лекцию как преподаватель. <a href="/Teacher/Lecture/@l.Id">Редактировать лекцию</a></div>
+            }
+            @if (Model.Next != null)
+            {
+                @if (info == null || info.State == LectureState.Completed)
+                {
+                    <a class="btn btn-success w-100" href="/Study/Lecture/@Model.Next.Id">Следующая: лекция @Model.Next.Number <i class="bi bi-arrow-right"></i></a>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary w-100" disabled><i class="bi bi-lock"></i> Лекция @Model.Next.Number откроется после выполнения условий</button>
+                }
+            }
+            else
+            {
+                <a class="btn btn-outline-primary w-100" href="/Study/Discipline/@l.Topic.DisciplineId">К списку лекций</a>
+            }
+        </div>
+    </div>
+</div>

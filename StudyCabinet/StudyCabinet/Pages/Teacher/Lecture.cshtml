@@ -1,0 +1,141 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Teacher.LectureModel
+@{
+    var l = Model.Lecture;
+    ViewData["Title"] = $"Лекция {l.Number}. {l.Title}";
+    var tab = Model.Tab is "main" or "material" or "control" or "test" ? Model.Tab : "main";
+    string Active(string t) => tab == t ? "active" : "";
+    string Show(string t) => tab == t ? "show active" : "";
+    var tq = l.Test?.Questions.OrderBy(q => q.Order).ToList() ?? new();
+}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/Teacher/Disciplines">Дисциплины</a></li>
+    <li class="breadcrumb-item"><a href="/Teacher/Discipline/@l.Topic.DisciplineId">@l.Topic.Discipline.Title</a></li>
+    <li class="breadcrumb-item active">Лекция @l.Number</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div><div class="small text-body-secondary">Тема: @l.Topic.Title</div><h1 class="h4 mb-0">Лекция @l.Number. @l.Title</h1></div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="/Study/Lecture/@l.Id"><i class="bi bi-eye"></i> Как видит студент</a>
+        <form method="post" asp-page-handler="Delete" asp-route-id="@l.Id" data-confirm="Удалить лекцию «@l.Title» вместе с вопросами, тестом и результатами студентов (ответов: @Model.Answers, попыток: @Model.Attempts)?">
+            <button class="btn btn-outline-danger" type="submit"><i class="bi bi-trash"></i> Удалить</button>
+        </form>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><button class="nav-link @Active("main")" data-bs-toggle="tab" data-bs-target="#main" type="button">Лекция и условия</button></li>
+    <li class="nav-item"><button class="nav-link @Active("material")" data-bs-toggle="tab" data-bs-target="#material" type="button">Файл материала @if (l.MaterialFile != null) { <i class="bi bi-paperclip"></i> }</button></li>
+    <li class="nav-item"><button class="nav-link @Active("control")" data-bs-toggle="tab" data-bs-target="#control" type="button">Контрольные вопросы <span class="badge text-bg-light border">@l.ControlQuestions.Count</span></button></li>
+    <li class="nav-item"><button class="nav-link @Active("test")" data-bs-toggle="tab" data-bs-target="#test" type="button">Тест <span class="badge text-bg-light border">@tq.Count</span></button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade @Show("main")" id="main">
+        <form method="post" asp-page-handler="Save" asp-route-id="@l.Id" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card"><div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-sm-3">
+                                <label asp-for="Input.Number" class="form-label">Номер</label>
+                                <input asp-for="Input.Number" type="number" class="form-control" />
+                                <span asp-validation-for="Input.Number" class="text-danger small"></span>
+                            </div>
+                            <div class="col-sm-9">
+                                <label asp-for="Input.Title" class="form-label">Название</label>
+                                <input asp-for="Input.Title" class="form-control" />
+                                <span asp-validation-for="Input.Title" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Description" class="form-label">Краткое описание</label>
+                                <input asp-for="Input.Description" class="form-control" />
+                                <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Content" class="form-label">Теория</label>
+                                <textarea asp-for="Input.Content" class="form-control font-monospace" rows="16"></textarea>
+                                <div class="form-text">Разметка: строка «# Заголовок», «## Подзаголовок», «- пункт списка», **жирный**, `код`. Пустая строка — новый абзац.</div>
+                            </div>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card mb-3"><div class="card-body">
+                        <label asp-for="Input.TopicId" class="form-label">Тема</label>
+                        <select asp-for="Input.TopicId" asp-items="Model.TopicItems" class="form-select"></select>
+                        <span asp-validation-for="Input.TopicId" class="text-danger small"></span>
+                    </div></div>
+                    <div class="card mb-3"><div class="card-body">
+                        <h2 class="h6">Условия открытия следующей лекции</h2>
+                        <div class="form-check mb-2"><input asp-for="Input.RequireControl" class="form-check-input" /><label asp-for="Input.RequireControl" class="form-check-label">Ответить на все контрольные вопросы</label></div>
+                        <div class="form-check mb-2"><input asp-for="Input.RequireControlCorrect" class="form-check-input" /><label asp-for="Input.RequireControlCorrect" class="form-check-label">Ответы с автопроверкой должны быть верными</label></div>
+                        <div class="form-check mb-2"><input asp-for="Input.RequireReview" class="form-check-input" /><label asp-for="Input.RequireReview" class="form-check-label">Ждать, пока преподаватель примет развёрнутые ответы</label></div>
+                        <div class="small text-body-secondary">Если у лекции есть тест, он всегда должен быть сдан не ниже проходного процента (вкладка «Тест»).</div>
+                    </div></div>
+                    <button class="btn btn-primary w-100" type="submit"><i class="bi bi-save"></i> Сохранить лекцию</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="tab-pane fade @Show("material")" id="material">
+        <div class="card" style="max-width:760px"><div class="card-body">
+            @if (l.MaterialFile != null)
+            {
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-3 bg-body-tertiary rounded">
+                    <div><i class="bi bi-file-earmark-text fs-4 text-primary"></i> <b>@l.MaterialName</b>
+                        <div class="small text-body-secondary">версия @l.MaterialVersion · загружен @Fmt.DateTime(l.MaterialUpdatedAt)@(Model.FileSize != null ? $" · {Fmt.Size(Model.FileSize.Value)}" : " · файл не найден на диске!")</div></div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="/Materials/@l.Id" target="_blank" rel="noopener">Открыть</a>
+                        <form method="post" asp-page-handler="DeleteFile" asp-route-id="@l.Id" data-confirm="Удалить файл «@l.MaterialName»?"><button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button></form>
+                    </div>
+                </div>
+            }
+            <form method="post" asp-page-handler="Upload" asp-route-id="@l.Id" enctype="multipart/form-data">
+                <label class="form-label" for="Upload">@(l.MaterialFile == null ? "Загрузить файл лекции" : "Заменить файл новой версией")</label>
+                <input class="form-control mb-2" type="file" id="Upload" name="Upload" accept="@string.Join(",", MaterialStore.Allowed)" />
+                <div class="form-text mb-3">PDF открывается прямо в приложении, документ Word (DOCX) — показывается текстом, остальные форматы (PPTX, XLSX, DOC, TXT, ODT, RTF, ZIP) студент скачивает. Размер — до 50 МБ.</div>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> @(l.MaterialFile == null ? "Загрузить" : "Заменить")</button>
+            </form>
+        </div></div>
+    </div>
+
+    <div class="tab-pane fade @Show("control")" id="control">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="small text-body-secondary mb-0">Вопросы студент видит на вкладке «Контрольные вопросы». Развёрнутые ответы проверяются в разделе «Проверка».</p>
+            <a class="btn btn-primary btn-sm" href="/Teacher/Question?lecture=@l.Id&kind=control"><i class="bi bi-plus-lg"></i> Вопрос</a>
+        </div>
+        <partial name="_QuestionList" model='(l.Id, (IEnumerable<IQuestion>)l.ControlQuestions.OrderBy(q => q.Order).ToList(), "control")' />
+    </div>
+
+    <div class="tab-pane fade @Show("test")" id="test">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <p class="small text-body-secondary mb-0">Банк вопросов теста. Вопросы с развёрнутым ответом в тесте недоступны — только автопроверка.</p>
+                    <a class="btn btn-primary btn-sm" href="/Teacher/Question?lecture=@l.Id&kind=test"><i class="bi bi-plus-lg"></i> Вопрос</a>
+                </div>
+                <partial name="_QuestionList" model='(l.Id, (IEnumerable<IQuestion>)tq, "test")' />
+            </div>
+            <div class="col-lg-4">
+                <form method="post" asp-page-handler="Test" asp-route-id="@l.Id" novalidate class="card"><div class="card-body">
+                    <h2 class="h6">Настройки теста</h2>
+                    <div class="row g-2">
+                        <div class="col-6"><label asp-for="TestSettings.PassPercent" class="form-label small">Проходной %</label><input asp-for="TestSettings.PassPercent" type="number" class="form-control" /><span asp-validation-for="TestSettings.PassPercent" class="text-danger small"></span></div>
+                        <div class="col-6"><label asp-for="TestSettings.MaxAttempts" class="form-label small">Попыток (0 — без огр.)</label><input asp-for="TestSettings.MaxAttempts" type="number" class="form-control" /><span asp-validation-for="TestSettings.MaxAttempts" class="text-danger small"></span></div>
+                        <div class="col-6"><label asp-for="TestSettings.QuestionCount" class="form-label small">Вопросов (0 — все)</label><input asp-for="TestSettings.QuestionCount" type="number" class="form-control" /><span asp-validation-for="TestSettings.QuestionCount" class="text-danger small"></span></div>
+                        <div class="col-6"><label asp-for="TestSettings.TimeLimitMinutes" class="form-label small">Время, мин (0 — без огр.)</label><input asp-for="TestSettings.TimeLimitMinutes" type="number" class="form-control" /><span asp-validation-for="TestSettings.TimeLimitMinutes" class="text-danger small"></span></div>
+                    </div>
+                    <div class="form-check mt-3"><input asp-for="TestSettings.ShuffleQuestions" class="form-check-input" /><label asp-for="TestSettings.ShuffleQuestions" class="form-check-label">Перемешивать вопросы</label></div>
+                    <div class="form-check"><input asp-for="TestSettings.ShuffleOptions" class="form-check-input" /><label asp-for="TestSettings.ShuffleOptions" class="form-check-label">Перемешивать варианты ответов</label></div>
+                    <div class="form-check mb-3"><input asp-for="TestSettings.AllowRetry" class="form-check-input" /><label asp-for="TestSettings.AllowRetry" class="form-check-label">Разрешить повторное прохождение при неудаче</label></div>
+                    <div class="small text-body-secondary mb-3">Без повторного прохождения у студента одна попытка; дополнительную выдаёт преподаватель на странице студента.</div>
+                    <button class="btn btn-primary w-100" type="submit">Сохранить настройки</button>
+                </div></form>
+            </div>
+        </div>
+    </div>
+</div>

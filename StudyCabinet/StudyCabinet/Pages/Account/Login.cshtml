@@ -1,0 +1,36 @@
+@page
+@model StudyCabinet.Pages.Account.LoginModel
+@{ ViewData["Title"] = "Вход"; }
+<div class="row justify-content-center g-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm"><div class="card-body p-4">
+            <h1 class="h4 mb-3">Вход в учебный кабинет</h1>
+            <form method="post" novalidate>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div class="mb-3">
+                    <label asp-for="Login" class="form-label">Логин</label>
+                    <input asp-for="Login" class="form-control" autocomplete="username" autofocus />
+                    <span asp-validation-for="Login" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label">Пароль</label>
+                    <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Войти</button>
+            </form>
+            <p class="mt-3 mb-0 small text-body-secondary">Нет учётной записи? <a href="/Account/Register">Регистрация студента</a></p>
+        </div></div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="card bg-body-tertiary border-0"><div class="card-body small">
+            <h2 class="h6">Демонстрационные учётные записи</h2>
+            <table class="table table-sm mb-0">
+                <tr><td>Преподаватель</td><td><code>teacher</code></td><td><code>Teacher123</code></td></tr>
+                <tr><td>Студент</td><td><code>student</code></td><td><code>Student123</code></td></tr>
+                <tr><td>Студенты</td><td colspan="2"><code>petrova</code>, <code>sidorov</code>, <code>kuznetsova</code>, <code>orlov</code> — пароль <code>Student123</code></td></tr>
+            </table>
+        </div></div>
+    </div>
+</div>

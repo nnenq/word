@@ -1,0 +1,70 @@
+@page
+@model StudyCabinet.Pages.Study.IndexModel
+@{ ViewData["Title"] = "Мои дисциплины"; var teacher = User.IsTeacher(); }
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@(teacher ? "Просмотр в роли студента" : "Мои дисциплины")</h1>
+        <div class="text-body-secondary">@User.FullName()@(Model.Group != null ? $" · группа {Model.Group}" : "")</div>
+    </div>
+    @if (!teacher) { <a class="btn btn-outline-primary" href="/Study/Results"><i class="bi bi-graph-up"></i> Мои результаты</a> }
+</div>
+@if (teacher)
+{
+    <div class="alert alert-info">Преподаватель видит все лекции открытыми. Результаты преподавателя в отчёты не попадают.</div>
+}
+@if (Model.Pending > 0)
+{
+    <div class="alert alert-warning"><i class="bi bi-hourglass-split"></i> Развёрнутых ответов на проверке у преподавателя: <b>@Model.Pending</b>. Следующая лекция откроется после проверки.</div>
+}
+
+<div class="row g-3 mb-4">
+    @foreach (var p in Model.Plans)
+    {
+        var cur = p.Current;
+        <div class="col-md-6">
+            <a class="card discipline-card h-100 text-decoration-none text-body" href="/Study/Discipline/@p.Discipline.Id">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-2">
+                        <h2 class="h5 mb-1">@p.Discipline.Title</h2>
+                        <span class="fw-bold @(p.Percent == 100 ? "text-success" : "text-primary")">@p.Percent%</span>
+                    </div>
+                    <p class="small text-body-secondary mb-3">@p.Discipline.Description</p>
+                    <div class="progress mb-2" role="progressbar" aria-label="Освоение дисциплины" aria-valuenow="@p.Percent" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar @(p.Percent == 100 ? "bg-success" : "")" style="width:@p.Percent%"></div>
+                    </div>
+                    <div class="small d-flex justify-content-between flex-wrap gap-2">
+                        <span>Пройдено лекций: <b>@p.Completed из @p.Lectures.Count</b></span>
+                        @if (p.Percent == 100) { <span class="text-success"><i class="bi bi-trophy-fill"></i> Дисциплина освоена</span> }
+                        else if (cur != null) { <span class="text-primary">Сейчас: лекция @cur.Lecture.Number «@cur.Lecture.Title»</span> }
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+    @if (Model.Plans.Count == 0)
+    {
+        <div class="col-12"><div class="card"><div class="card-body text-center text-body-secondary py-5">Преподаватель ещё не добавил дисциплины.</div></div></div>
+    }
+</div>
+
+@if (Model.Recent.Count > 0)
+{
+    <h2 class="h5">Последние тесты</h2>
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0">
+            <thead><tr><th>Лекция</th><th>Дата</th><th class="text-end">Результат</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var a in Model.Recent)
+            {
+                <tr>
+                    <td>@a.Test.Lecture.Number. @a.Test.Lecture.Title</td>
+                    <td class="text-nowrap">@Fmt.DateTime(a.FinishedAt)</td>
+                    <td class="text-end text-nowrap">@a.Correct из @a.Total · <b>@a.Percent%</b></td>
+                    <td class="text-end">@(a.Status == AttemptStatus.Passed ? Html.Raw("<span class=\"state state-completed\">Сдан</span>") : Html.Raw("<span class=\"state state-locked\">Не сдан</span>"))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}

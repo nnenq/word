@@ -1,0 +1,22 @@
+@page "{id:int?}"
+@model StudyCabinet.Pages.Teacher.UserEditModel
+@{ ViewData["Title"] = Model.Id == null ? "Новая учётная запись" : "Учётная запись"; }
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/Teacher/Users">Учётные записи</a></li><li class="breadcrumb-item active">@ViewData["Title"]</li></ol></nav>
+<form method="post" novalidate class="card" style="max-width:720px"><div class="card-body">
+    <h1 class="h4 mb-3">@ViewData["Title"]</h1>
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+    <div class="row g-3">
+        <div class="col-md-7"><label asp-for="Input.FullName" class="form-label">ФИО</label><input asp-for="Input.FullName" class="form-control" /><span asp-validation-for="Input.FullName" class="text-danger small"></span></div>
+        <div class="col-md-5"><label asp-for="Input.Login" class="form-label">Логин</label><input asp-for="Input.Login" class="form-control" /><span asp-validation-for="Input.Login" class="text-danger small"></span></div>
+        <div class="col-md-4"><label asp-for="Input.Role" class="form-label">Роль</label>
+            <select asp-for="Input.Role" class="form-select"><option value="Student">Студент</option><option value="Teacher">Преподаватель</option></select></div>
+        <div class="col-md-4"><label asp-for="Input.GroupId" class="form-label">Группа (для студента)</label>
+            <select asp-for="Input.GroupId" asp-items="Model.Groups" class="form-select"><option value="">—</option></select><span asp-validation-for="Input.GroupId" class="text-danger small"></span></div>
+        <div class="col-md-4"><label asp-for="Input.Email" class="form-label">Почта</label><input asp-for="Input.Email" class="form-control" /><span asp-validation-for="Input.Email" class="text-danger small"></span></div>
+        <div class="col-md-6"><label asp-for="Input.Password" class="form-label">@(Model.Id == null ? "Пароль" : "Новый пароль (если нужно сбросить)")</label>
+            <input asp-for="Input.Password" type="text" class="form-control" autocomplete="new-password" /><span asp-validation-for="Input.Password" class="text-danger small"></span>
+            <div class="form-text">Не короче 8 символов, буквы и цифры. Хранится только в виде хеша.</div></div>
+        <div class="col-md-6 d-flex align-items-center"><div class="form-check"><input asp-for="Input.IsBlocked" class="form-check-input" /><label asp-for="Input.IsBlocked" class="form-check-label">Заблокировать — вход будет запрещён, результаты сохранятся</label></div></div>
+    </div>
+    <div class="mt-4 d-flex gap-2"><button class="btn btn-primary" type="submit">Сохранить</button><a class="btn btn-outline-secondary" href="/Teacher/Users">Отмена</a></div>
+</div></form>

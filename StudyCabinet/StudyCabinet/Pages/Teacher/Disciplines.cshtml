@@ -1,0 +1,46 @@
+@page
+@model StudyCabinet.Pages.Teacher.DisciplinesModel
+@{ ViewData["Title"] = "Дисциплины"; }
+<h1 class="h3 mb-3">Дисциплины</h1>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card"><div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr><th>Дисциплина</th><th class="text-end">Тем</th><th class="text-end">Лекций</th><th class="text-end">Вопросов</th><th class="text-end">Студентов</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var r in Model.Rows)
+                {
+                    <tr>
+                        <td><a class="fw-semibold" href="/Teacher/Discipline/@r.D.Id">@r.D.Title</a><div class="small text-body-secondary">@r.D.Description</div></td>
+                        <td class="text-end">@r.Topics</td><td class="text-end">@r.Lectures</td><td class="text-end">@r.Questions</td><td class="text-end">@r.Students</td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" href="/Teacher/Discipline/@r.D.Id"><i class="bi bi-pencil"></i> Открыть</a>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@r.D.Id" class="d-inline" data-confirm="Удалить дисциплину «@r.D.Title» со всеми темами, лекциями, вопросами, тестами и результатами студентов? Это необратимо.">
+                                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Rows.Count == 0) { <tr><td colspan="6" class="text-center text-body-secondary py-4">Дисциплин пока нет.</td></tr> }
+                </tbody>
+            </table>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card"><div class="card-body">
+            <h2 class="h5">Новая дисциплина</h2>
+            <form method="post" novalidate>
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label">Название</label>
+                    <input asp-for="Title" class="form-control" placeholder="Например, «Внедрение и поддержка компьютерных систем»" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Описание</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                </div>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Добавить</button>
+            </form>
+        </div></div>
+    </div>
+</div>

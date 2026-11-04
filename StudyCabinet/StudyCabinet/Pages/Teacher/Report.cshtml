@@ -1,0 +1,63 @@
+@page
+@model StudyCabinet.Pages.Teacher.ReportModel
+@{ ViewData["Title"] = "Отчёт по дисциплине"; }
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <h1 class="h3 mb-0">Отчёт по дисциплине и группе</h1>
+    @if (Model.Current != null)
+    {
+        <div class="d-flex gap-2 no-print">
+            <a class="btn btn-outline-success" href="/Teacher/Report?handler=Csv&discipline=@Model.Discipline&group=@Model.Group&topic=@Model.Topic"><i class="bi bi-file-earmark-spreadsheet"></i> Выгрузить в Excel (CSV)</a>
+            <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Печать</button>
+        </div>
+    }
+</div>
+<form method="get" class="row g-2 mb-3 no-print">
+    <div class="col-md-4"><label class="form-label small" for="discipline">Дисциплина</label>
+        <select class="form-select" id="discipline" name="discipline" onchange="this.form.topic.value='';this.form.submit()">@foreach (var d in Model.Disciplines) { <option value="@d.Id" selected="@(d.Id == Model.Discipline)">@d.Title</option> }</select></div>
+    <div class="col-md-3"><label class="form-label small" for="group">Группа</label>
+        <select class="form-select" id="group" name="group"><option value="">Все группы</option>@foreach (var g in Model.Groups) { <option value="@g.Id" selected="@(g.Id == Model.Group)">@g.Name</option> }</select></div>
+    <div class="col-md-3"><label class="form-label small" for="topic">Показать</label>
+        <select class="form-select" id="topic" name="topic"><option value="">Всех студентов</option>@foreach (var t in Model.Topics) { <option value="@t.Id" selected="@(t.Id == Model.Topic)">Не завершили тему «@t.Title»</option> }</select></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Показать</button></div>
+</form>
+
+@if (Model.Current != null)
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-bordered mb-0 report">
+            <thead>
+                <tr><th rowspan="2" class="align-middle">Студент</th>
+                    @foreach (var t in Model.Lectures.GroupBy(l => l.TopicId)) { <th colspan="@t.Count()" class="text-center small">@t.First().Topic.Title</th> }
+                    <th rowspan="2" class="text-center align-middle">Освоение</th></tr>
+                <tr>@foreach (var l in Model.Lectures) { <th class="rot" title="@l.Title">Л@(l.Number)</th> }</tr>
+            </thead>
+            <tbody>
+            @foreach (var (u, plan) in Model.Rows)
+            {
+                <tr>
+                    <td><a href="/Teacher/Student/@u.Id">@u.FullName</a></td>
+                    @foreach (var l in plan.Lectures)
+                    {
+                        switch (l.State)
+                        {
+                            case LectureState.Completed: <td class="cell cell-done" title="Пройдена @Fmt.DateTime(l.Progress?.CompletedAt)"><i class="bi bi-check-lg"></i> @(l.BestPercent?.ToString() ?? "")@(l.BestPercent != null ? "%" : "")</td> break;
+                            case LectureState.Pending: <td class="cell cell-wait" title="Ждёт проверки преподавателем"><i class="bi bi-hourglass-split"></i></td> break;
+                            case LectureState.Available: <td class="cell cell-open" title="Изучает, попыток: @l.AttemptsUsed">@(l.AttemptsUsed > 0 ? $"{l.BestPercent}% ×{l.AttemptsUsed}" : "изучает")</td> break;
+                            default: <td class="cell cell-lock"><i class="bi bi-lock"></i></td> break;
+                        }
+                    }
+                    <td class="cell fw-bold">@plan.Percent%</td>
+                </tr>
+            }
+            @if (Model.Rows.Count == 0) { <tr><td colspan="@(Model.Lectures.Count + 2)" class="text-center text-body-secondary py-4">Нет студентов по выбранным условиям.</td></tr> }
+            </tbody>
+            @if (Model.Rows.Count > 0)
+            {
+                <tfoot><tr class="table-light"><td class="small fw-semibold">Прошли лекцию</td>
+                    @for (int i = 0; i < Model.Lectures.Count; i++) { var k = i; <td class="cell small">@Model.Rows.Count(r => r.Plan.Lectures[k].State == LectureState.Completed) из @Model.Rows.Count</td> }
+                    <td class="cell small">ср. @((int)Model.Rows.Average(r => r.Plan.Percent))%</td></tr></tfoot>
+            }
+        </table>
+    </div></div>
+    <div class="small text-body-secondary mt-2"><span class="cell-done px-1">✓ 85%</span> пройдена (лучший тест) · <span class="cell-open px-1">40% ×2</span> изучает (лучший результат × попыток) · <span class="cell-wait px-1">⌛</span> ждёт проверки · <i class="bi bi-lock"></i> закрыта</div>
+}

@@ -1,0 +1,118 @@
+/* Электронный учебный кабинет: Bootstrap 5 + свои цвета и детали. Акцент — спокойный синий, фон — светлый. */
+:root {
+    --bs-primary: #2f5bd3;
+    --bs-primary-rgb: 47, 91, 211;
+    --bs-link-color: #2f5bd3;
+    --bs-link-color-rgb: 47, 91, 211;
+    --bs-link-hover-color: #2448a8;
+    --bs-body-bg: #f4f6fb;
+    --bs-border-radius: .6rem;
+    --app-ok: #1f8a4c;
+    --app-lock: #8a93a6;
+    --app-wait: #b7791f;
+}
+/* Пустая сводка ошибок формы не показывается */
+.validation-summary-valid { display: none; }
+.validation-summary-errors ul { margin: 0; padding-left: 1.1rem; }
+body { min-height: 100vh; display: flex; flex-direction: column; }
+.main { flex: 1; }
+.btn-primary { --bs-btn-bg: #2f5bd3; --bs-btn-border-color: #2f5bd3; --bs-btn-hover-bg: #2448a8; --bs-btn-hover-border-color: #2448a8; --bs-btn-active-bg: #1f3f94; --bs-btn-disabled-bg: #2f5bd3; --bs-btn-disabled-border-color: #2f5bd3; }
+.btn-outline-primary { --bs-btn-color: #2f5bd3; --bs-btn-border-color: #2f5bd3; --bs-btn-hover-bg: #2f5bd3; --bs-btn-hover-border-color: #2f5bd3; --bs-btn-active-bg: #2448a8; }
+.text-primary { color: #2f5bd3 !important; }
+.bg-primary { background-color: #2f5bd3 !important; }
+.card { border-color: #e3e7f0; box-shadow: 0 1px 2px rgba(20, 30, 60, .04); }
+
+/* Шапка */
+.app-nav { background: #fff; border-bottom: 1px solid #e3e7f0; }
+.navbar-brand { font-weight: 700; display: flex; align-items: center; gap: .5rem; }
+.brand-icon { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; background: #2f5bd3; color: #fff; font-size: 1.05rem; }
+.app-nav .nav-link { border-radius: .45rem; padding: .45rem .65rem !important; color: #3d4659; white-space: nowrap; }
+.app-nav .nav-link:hover { background: #f0f3fa; }
+.app-nav .nav-link.active { background: #e8eefc; color: #2f5bd3; font-weight: 600; }
+.user-link { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: inherit; padding: .15rem .5rem .15rem .15rem; border-radius: 2rem; }
+.user-link:hover { background: #f0f3fa; }
+.user-name { max-width: 15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.avatar { display: inline-grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 50%; background: #2f5bd3; color: #fff; font-weight: 600; flex: none; }
+.app-foot { color: #6b7385; font-size: .85rem; padding: 1.2rem 0; border-top: 1px solid #e3e7f0; background: #fff; }
+
+/* Главная */
+.hero-card { background: linear-gradient(135deg, #fff 0%, #eef3ff 100%); border: 1px solid #e3e7f0; border-radius: 1rem; padding: 2.2rem; }
+.steps { display: grid; gap: .6rem; }
+.step { display: flex; gap: .8rem; align-items: center; background: #fff; border: 1px solid #e3e7f0; border-radius: .7rem; padding: .7rem .9rem; }
+.step > span { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: #e8eefc; color: #2f5bd3; font-weight: 700; flex: none; }
+.step.done > span { background: #e3f4ea; color: var(--app-ok); }
+.step small { display: block; color: #6b7385; }
+
+/* Прогресс и состояния лекций */
+.progress { height: .55rem; background: #e6eaf2; }
+.progress-bar { background: #2f5bd3; }
+.progress-bar.bg-success { background: var(--app-ok) !important; }
+.state { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; font-weight: 600; padding: .15rem .55rem; border-radius: 1rem; white-space: nowrap; }
+.state-completed { background: #e3f4ea; color: var(--app-ok); }
+.state-available { background: #e8eefc; color: #2f5bd3; }
+.state-pending { background: #fdf3e1; color: var(--app-wait); }
+.state-locked { background: #eef0f4; color: var(--app-lock); }
+.lecture-row { display: flex; align-items: center; gap: .9rem; padding: .8rem 1rem; border-top: 1px solid #edf0f5; text-decoration: none; color: inherit; }
+.lecture-row:first-child { border-top: 0; }
+a.lecture-row:hover { background: #f7f9fd; }
+.lecture-row.locked { color: #8a93a6; }
+.lecture-num { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: .55rem; background: #e8eefc; color: #2f5bd3; font-weight: 700; flex: none; }
+.locked .lecture-num { background: #eef0f4; color: #8a93a6; }
+.completed .lecture-num { background: #e3f4ea; color: var(--app-ok); }
+.lecture-meta { font-size: .82rem; color: #6b7385; }
+.discipline-card { transition: box-shadow .15s, transform .15s; }
+.discipline-card:hover { box-shadow: 0 6px 20px rgba(20, 30, 60, .08); transform: translateY(-1px); }
+
+/* Лекция */
+.theory { font-size: 1.02rem; line-height: 1.7; }
+.theory h3 { font-size: 1.3rem; margin: 1.4rem 0 .6rem; }
+.theory h4 { font-size: 1.1rem; margin: 1.1rem 0 .5rem; }
+.theory h3:first-child, .theory h4:first-child { margin-top: 0; }
+.theory table { margin: .8rem 0; }
+.material-frame { width: 100%; height: 75vh; border: 1px solid #e3e7f0; border-radius: .6rem; background: #fff; }
+.question { border: 1px solid #e3e7f0; border-radius: .7rem; padding: 1rem 1.1rem; background: #fff; }
+.question + .question { margin-top: .8rem; }
+.question-title { font-weight: 600; margin-bottom: .6rem; }
+.question .badge { font-weight: 500; }
+.question.is-correct { border-color: #b9e2c8; background: #f6fcf8; }
+.question.is-wrong { border-color: #f1c2c2; background: #fff8f8; }
+.question.is-pending { border-color: #f1d9a8; background: #fffbf3; }
+.match-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem; align-items: center; margin-bottom: .4rem; }
+.conditions li { margin-bottom: .25rem; }
+.timer { font-variant-numeric: tabular-nums; font-weight: 700; }
+.timer.low { color: #c0392b; }
+.sticky-panel { position: sticky; top: 5rem; }
+
+/* Таблицы и отчёты */
+.table > :not(caption) > * > * { vertical-align: middle; }
+.report td.cell { text-align: center; white-space: nowrap; font-size: .85rem; }
+.report th.rot { font-size: .8rem; font-weight: 600; text-align: center; min-width: 4.5rem; }
+.cell-done { background: #e3f4ea !important; color: var(--app-ok); }
+.cell-wait { background: #fdf3e1 !important; color: var(--app-wait); }
+.cell-open { background: #eef3ff !important; color: #2f5bd3; }
+.cell-lock { color: #a0a8b8; }
+.kpi { border-radius: .8rem; background: #fff; border: 1px solid #e3e7f0; padding: 1rem 1.1rem; height: 100%; }
+.kpi small { color: #6b7385; display: block; }
+.kpi b { font-size: 1.6rem; }
+.order-btns form { display: inline; }
+.log-box { max-height: 420px; overflow: auto; background: #1e2330; color: #dfe3ee; font-size: .8rem; border-radius: .6rem; padding: .8rem; white-space: pre-wrap; }
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+    /* На средних экранах в шапке — только значок пользователя, ФИО видно во всплывающей подсказке */
+    .user-name-compact { display: none; }
+}
+@media (max-width: 1199.98px) {
+    .user-box { margin-top: .6rem; padding-top: .6rem; border-top: 1px solid #e3e7f0; justify-content: space-between; }
+    .sticky-panel { position: static; }
+}
+@media (max-width: 575.98px) {
+    .hero-card { padding: 1.3rem; }
+    .match-row { grid-template-columns: 1fr; gap: .25rem; margin-bottom: .8rem; }
+    .lecture-row { padding: .7rem .75rem; gap: .3rem .65rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+    .lecture-row > .state { grid-column: 2; justify-self: start; }
+    .material-frame { height: 60vh; }
+}
+@media print {
+    .app-nav, .app-foot, .no-print, .btn { display: none !important; }
+    body { background: #fff; }
+}

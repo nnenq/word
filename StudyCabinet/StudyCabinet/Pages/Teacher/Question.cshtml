@@ -1,0 +1,113 @@
+@page
+@model StudyCabinet.Pages.Teacher.QuestionModel
+@{
+    var l = Model.LectureEntity;
+    ViewData["Title"] = Model.Id == null ? "Новый вопрос" : "Изменение вопроса";
+    string choices = $"{(int)QuestionType.Single},{(int)QuestionType.Multiple}";
+    string accepts = $"{(int)QuestionType.ShortText},{(int)QuestionType.Gap}";
+    string matching = $"{(int)QuestionType.Matching}";
+    string essay = $"{(int)QuestionType.Essay}";
+}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/Teacher/Discipline/@l.Topic.DisciplineId">@l.Topic.Discipline.Title</a></li>
+    <li class="breadcrumb-item"><a href="/Teacher/Lecture/@l.Id?tab=@(Model.IsTest ? "test" : "control")">Лекция @l.Number</a></li>
+    <li class="breadcrumb-item active">@ViewData["Title"]</li>
+</ol></nav>
+<h1 class="h4 mb-3">@ViewData["Title"] <span class="text-body-secondary fs-6">— @(Model.IsTest ? "вопрос теста" : "контрольный вопрос")</span></h1>
+
+<form method="post" novalidate class="card" style="max-width:860px"><div class="card-body">
+    <input type="hidden" asp-for="Lecture" /><input type="hidden" asp-for="Kind" /><input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="All" class="alert alert-danger py-2"></div>
+    <div class="row g-3">
+        <div class="col-md-8">
+            <label asp-for="Text" class="form-label">Текст вопроса</label>
+            <textarea asp-for="Text" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Type" class="form-label">Тип вопроса</label>
+            <select asp-for="Type" class="form-select" data-question-type>
+                @foreach (var t in Model.Types) { <option value="@((int)t)" selected="@(t == Model.Type)">@QuestionTypes.Name(t)</option> }
+            </select>
+        </div>
+    </div>
+
+    <div class="mt-4" data-for-types="@choices" id="choices">
+        <h2 class="h6">Варианты ответа <span class="text-body-secondary fw-normal small">— отметьте правильные</span></h2>
+        <div class="rows">
+            @for (int i = 0; i < Model.ChoiceText.Count; i++)
+            {
+                var key = i < Model.ChoiceKey.Count ? Model.ChoiceKey[i] : "x" + i;
+                <div class="opt-row input-group mb-2">
+                    <span class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="ChoiceCorrect" value="@key" checked="@Model.ChoiceCorrect.Contains(key)" aria-label="Правильный" /></span>
+                    <input type="hidden" name="ChoiceKey" value="@key" />
+                    <input class="form-control" name="ChoiceText" value="@Model.ChoiceText[i]" placeholder="Вариант ответа" maxlength="500" />
+                    <button class="btn btn-outline-secondary" type="button" data-remove-row aria-label="Убрать"><i class="bi bi-x-lg"></i></button>
+                </div>
+            }
+        </div>
+        <template>
+            <div class="opt-row input-group mb-2">
+                <span class="input-group-text"><input class="form-check-input mt-0" type="checkbox" name="ChoiceCorrect" value="__KEY__" aria-label="Правильный" /></span>
+                <input type="hidden" name="ChoiceKey" value="__KEY__" />
+                <input class="form-control" name="ChoiceText" placeholder="Вариант ответа" maxlength="500" />
+                <button class="btn btn-outline-secondary" type="button" data-remove-row aria-label="Убрать"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </template>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-add-row="choices"><i class="bi bi-plus-lg"></i> Вариант</button>
+    </div>
+
+    <div class="mt-4" data-for-types="@accepts" id="accepts">
+        <h2 class="h6">Правильные ответы <span class="text-body-secondary fw-normal small">— все допустимые варианты написания</span></h2>
+        <p class="small text-body-secondary">Сравнение без учёта регистра, буквы «ё», лишних пробелов и точки в конце. Для пропущенного слова отметьте место пропуска в тексте вопроса: «______».</p>
+        <div class="rows">
+            @foreach (var a in Model.AcceptText)
+            {
+                <div class="opt-row input-group mb-2">
+                    <input class="form-control" name="AcceptText" value="@a" placeholder="Правильный ответ" maxlength="500" />
+                    <button class="btn btn-outline-secondary" type="button" data-remove-row aria-label="Убрать"><i class="bi bi-x-lg"></i></button>
+                </div>
+            }
+        </div>
+        <template>
+            <div class="opt-row input-group mb-2">
+                <input class="form-control" name="AcceptText" placeholder="Правильный ответ" maxlength="500" />
+                <button class="btn btn-outline-secondary" type="button" data-remove-row aria-label="Убрать"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </template>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-add-row="accepts"><i class="bi bi-plus-lg"></i> Вариант написания</button>
+    </div>
+
+    <div class="mt-4" data-for-types="@matching" id="matching">
+        <h2 class="h6">Пары соответствия <span class="text-body-secondary fw-normal small">— студент выбирает правую часть для каждой левой</span></h2>
+        <div class="rows">
+            @for (int i = 0; i < Model.MatchLeft.Count; i++)
+            {
+                <div class="opt-row input-group mb-2">
+                    <input class="form-control" name="MatchLeft" value="@Model.MatchLeft[i]" placeholder="Понятие" maxlength="500" />
+                    <span class="input-group-text"><i class="bi bi-arrow-right"></i></span>
+                    <input class="form-control" name="MatchRight" value="@(i < Model.MatchRight.Count ? Model.MatchRight[i] : "")" placeholder="Соответствие" maxlength="500" />
+                    <button class="btn btn-outline-secondary" type="button" data-remove-row aria-label="Убрать"><i class="bi bi-x-lg"></i></button>
+                </div>
+            }
+        </div>
+        <template>
+            <div class="opt-row input-group mb-2">
+                <input class="form-control" name="MatchLeft" placeholder="Понятие" maxlength="500" />
+                <span class="input-group-text"><i class="bi bi-arrow-right"></i></span>
+                <input class="form-control" name="MatchRight" placeholder="Соответствие" maxlength="500" />
+                <button class="btn btn-outline-secondary" type="button" data-remove-row aria-label="Убрать"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </template>
+        <button class="btn btn-sm btn-outline-primary" type="button" data-add-row="matching"><i class="bi bi-plus-lg"></i> Пара</button>
+    </div>
+
+    <div class="mt-4 alert alert-info" data-for-types="@essay">
+        Развёрнутый ответ проверяет преподаватель в разделе «Проверка». Пока ответ не принят, следующая лекция закрыта —
+        если в условиях лекции включено «Ждать, пока преподаватель примет развёрнутые ответы».
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Сохранить</button>
+        <a class="btn btn-outline-secondary" href="/Teacher/Lecture/@l.Id?tab=@(Model.IsTest ? "test" : "control")">Отмена</a>
+    </div>
+</div></form>

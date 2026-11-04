@@ -1,0 +1,50 @@
+@page
+@model StudyCabinet.Pages.Teacher.ReviewsModel
+@{ ViewData["Title"] = "Проверка ответов"; }
+<h1 class="h3 mb-1">Проверка развёрнутых ответов</h1>
+<p class="text-body-secondary">Пока ответ не принят, следующая лекция студента закрыта (если это условие включено в лекции).</p>
+
+@if (Model.Pending.Count == 0)
+{
+    <div class="card mb-4"><div class="card-body text-center text-body-secondary py-5"><i class="bi bi-check2-all fs-3 d-block"></i>Все ответы проверены.</div></div>
+}
+@foreach (var a in Model.Pending)
+{
+    var l = a.ControlQuestion.Lecture;
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+            <div><b>@a.Student.FullName</b> <span class="text-body-secondary small">· @Fmt.DateTime(a.AnsweredAt)</span></div>
+            <div class="small text-body-secondary">@l.Topic.Discipline.Title · лекция @l.Number «@l.Title»</div>
+        </div>
+        <div class="fw-semibold mb-1">@a.ControlQuestion.Text</div>
+        <div class="p-3 bg-body-tertiary rounded mb-3" style="white-space:pre-wrap">@string.Join(" ", Grading.FromJson(a.Answer))</div>
+        <form method="post" class="row g-2 align-items-end">
+            <input type="hidden" name="id" value="@a.Id" />
+            <div class="col-md-8"><label class="form-label small" for="c@(a.Id)">Комментарий (обязателен при возврате)</label><input class="form-control" id="c@(a.Id)" name="comment" maxlength="1000" /></div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-success flex-fill" name="accept" value="true" type="submit"><i class="bi bi-check-lg"></i> Принять</button>
+                <button class="btn btn-outline-danger flex-fill" name="accept" value="false" type="submit"><i class="bi bi-arrow-counterclockwise"></i> На доработку</button>
+            </div>
+        </form>
+    </div></div>
+}
+
+@if (Model.Checked.Count > 0)
+{
+    <h2 class="h5 mt-4">Недавно проверенные</h2>
+    <div class="card"><div class="table-responsive"><table class="table mb-0">
+        <thead><tr><th>Проверен</th><th>Студент</th><th>Лекция</th><th>Решение</th><th>Комментарий</th></tr></thead>
+        <tbody>
+        @foreach (var a in Model.Checked)
+        {
+            <tr>
+                <td class="small text-nowrap">@Fmt.DateTime(a.CheckedAt)</td>
+                <td>@a.Student.FullName</td>
+                <td class="small">@a.ControlQuestion.Lecture.Number. @a.ControlQuestion.Lecture.Title</td>
+                <td>@(a.Status == AnswerStatus.Accepted ? Html.Raw("<span class=\"state state-completed\">Принят</span>") : Html.Raw("<span class=\"state state-locked text-danger\">На доработку</span>"))</td>
+                <td class="small">@a.TeacherComment</td>
+            </tr>
+        }
+        </tbody>
+    </table></div></div>
+}

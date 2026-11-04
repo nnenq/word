@@ -1,0 +1,20 @@
+@page
+@model StudyCabinet.Pages.Teacher.SystemModel
+@{ ViewData["Title"] = "Состояние системы"; }
+<h1 class="h3 mb-3">Состояние системы</h1>
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3"><div class="kpi"><small>База данных</small><b class="@(Model.DbOk ? "text-success" : "text-danger")">@(Model.DbOk ? "работает" : "ошибка")</b><div class="small text-body-secondary">@Model.Provider.Replace("Microsoft.EntityFrameworkCore.", "")</div>@if (Model.DbError != null) { <div class="small text-danger">@Model.DbError</div> }</div></div>
+    <div class="col-md-6 col-lg-3"><div class="kpi"><small>Файлы лекций</small><b>@Model.Materials</b><div class="small text-body-secondary">@Fmt.Size(Model.MaterialsSize)</div></div></div>
+    <div class="col-md-6 col-lg-3"><div class="kpi"><small>Последняя резервная копия</small><b class="fs-6 @(Model.LastBackup == null || Model.LastBackup.CreationTime < DateTime.Now.AddDays(-1) ? "text-warning-emphasis" : "")">@(Model.LastBackup == null ? "нет" : Fmt.DateTime(Model.LastBackup.CreationTime))</b><div class="small"><a href="/Teacher/Backup">Резервные копии</a></div></div></div>
+    <div class="col-md-6 col-lg-3"><div class="kpi"><small>Свободно на диске</small><b>@(Model.DiskFree == null ? "—" : Fmt.Size(Model.DiskFree.Value))</b><div class="small text-body-secondary">Ошибок сегодня: @Model.ErrorsToday</div></div></div>
+</div>
+<div class="card mb-4"><div class="card-body small">
+    <div class="row g-2">
+        <div class="col-md-6">Версия приложения: <b>@Model.Version</b> · режим: <b>@Model.Environment</b></div>
+        <div class="col-md-6">Запущено: <b>@Fmt.DateTime(Model.Started)</b></div>
+        <div class="col-md-6">Проверка доступности: <a href="/health" target="_blank">/health</a> (отвечает «ok», если сайт и база работают)</div>
+        <div class="col-md-6">Папка журналов: <code>@Model.LogFolder</code></div>
+    </div>
+</div></div>
+<h2 class="h5">Журнал ошибок за сегодня <span class="small text-body-secondary fw-normal">— предупреждения и ошибки, последние строки</span></h2>
+<div class="log-box">@(string.IsNullOrWhiteSpace(Model.LogTail) ? "Сегодня ошибок и предупреждений нет." : Model.LogTail)</div>

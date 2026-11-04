@@ -1,0 +1,119 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>body{background:#fff;margin:0;font-family:Arial} .d{display:inline-block;padding:16px;background:#fff}</style></head><body>
+<div class="d" id="er"><pre class="mermaid">
+erDiagram
+    Users ||--o{ GroupMemberships : "состоит в"
+    StudentGroups ||--o{ GroupMemberships : "включает"
+    Disciplines ||--o{ Topics : "содержит"
+    Topics ||--o{ Lectures : "содержит"
+    Lectures ||--o{ ControlQuestions : "вопросы"
+    Lectures ||--o| Tests : "тест"
+    Tests ||--o{ TestQuestions : "банк вопросов"
+    ControlQuestions ||--o{ AnswerOptions : "варианты"
+    TestQuestions ||--o{ AnswerOptions : "варианты"
+    Users ||--o{ StudentAnswers : "отвечает"
+    ControlQuestions ||--o{ StudentAnswers : "ответы"
+    Users ||--o{ TestAttempts : "проходит"
+    Tests ||--o{ TestAttempts : "попытки"
+    Users ||--o{ LectureProgress : "прогресс"
+    Lectures ||--o{ LectureProgress : "прогресс"
+    Users { int Id PK
+        string Login UK
+        string PasswordHash
+        string FullName
+        string Role
+        bool IsBlocked }
+    StudentGroups { int Id PK
+        string Name UK }
+    GroupMemberships { int Id PK
+        int UserId FK
+        int GroupId FK }
+    Disciplines { int Id PK
+        string Title
+        string Description }
+    Topics { int Id PK
+        int DisciplineId FK
+        string Title
+        int Order }
+    Lectures { int Id PK
+        int TopicId FK
+        int Number
+        string Title
+        string Content
+        string MaterialFile
+        int Order
+        bool RequireControl
+        bool RequireReview }
+    ControlQuestions { int Id PK
+        int LectureId FK
+        string Text
+        int Type }
+    Tests { int Id PK
+        int LectureId FK
+        int PassPercent
+        int MaxAttempts
+        int TimeLimitMinutes }
+    TestQuestions { int Id PK
+        int TestId FK
+        string Text
+        int Type }
+    AnswerOptions { int Id PK
+        int ControlQuestionId FK
+        int TestQuestionId FK
+        string Text
+        string MatchText
+        bool IsCorrect }
+    StudentAnswers { int Id PK
+        int StudentId FK
+        int ControlQuestionId FK
+        string Answer
+        int Status }
+    TestAttempts { int Id PK
+        int StudentId FK
+        int TestId FK
+        datetime StartedAt
+        int Percent
+        int Status }
+    LectureProgress { int Id PK
+        int StudentId FK
+        int LectureId FK
+        int Status
+        int ExtraAttempts }
+</pre></div>
+<div class="d" id="algo"><pre class="mermaid">
+flowchart TD
+    A(["Студент открывает лекцию N"]) --> B{"N = 1 или лекция N−1 пройдена,<br/>или открыта преподавателем?"}
+    B -- нет --> X["Сервер отвечает 403:<br/>«Лекция пока закрыта»"]
+    B -- да --> C["Теория, PDF или документ Word"]
+    C --> D["Контрольные вопросы:<br/>автопроверка, развёрнутые — преподавателю"]
+    D --> E["Тест: случайные вопросы,<br/>перемешанные варианты, таймер"]
+    E --> F{"Результат ≥ проходного %?"}
+    F -- нет --> G{"Попытки остались?"}
+    G -- да --> C
+    G -- нет --> H["Обратиться к преподавателю:<br/>дополнительная попытка"]
+    H --> E
+    F -- да --> I{"Все контрольные вопросы отвечены<br/>и развёрнутые ответы приняты?"}
+    I -- "нет (ждёт проверки)" --> J["Состояние «На проверке»"]
+    J --> I
+    I -- да --> K["Лекция N пройдена<br/>(запись в LectureProgress)"]
+    K --> L(["Открывается лекция N+1"])
+</pre></div>
+<div class="d" id="net"><pre class="mermaid">
+flowchart LR
+    subgraph T["Компьютер преподавателя"]
+        direction TB
+        S["Электронный учебный кабинет<br/>служба Windows, порт 5000"]
+        DB[("База данных<br/>SQLite / SQL Server")]
+        M["App_Data: файлы лекций,<br/>резервные копии, журналы"]
+        S --> DB
+        S --> M
+    end
+    P1["Браузер студента 1"] -- "http://IP:5000" --> FW
+    P2["Браузер студента 2"] -- "http://IP:5000" --> FW
+    P3["Браузер студента N"] -- "http://IP:5000" --> FW
+    FW{{"Брандмауэр Windows:<br/>открыт только порт 5000,<br/>частная сеть"}} --> S
+    U[("Флешка / другой диск<br/>копии 3-2-1")] -.-> M
+</pre></div>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral', er: { useMaxWidth: false }, flowchart: { useMaxWidth: false, htmlLabels: true }, themeVariables: { fontSize: '15px', fontFamily: 'Arial' } });</script>
+</body></html>

@@ -1,0 +1,42 @@
+@page
+@model StudyCabinet.Pages.Account.ProfileModel
+@{ ViewData["Title"] = "Профиль"; }
+<h1 class="h3 mb-3">Профиль</h1>
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card"><div class="card-body">
+            <h2 class="h5">Мои данные</h2>
+            <dl class="row mb-0">
+                <dt class="col-5">ФИО</dt><dd class="col-7">@Model.Me.FullName</dd>
+                <dt class="col-5">Логин</dt><dd class="col-7">@Model.Me.Login</dd>
+                <dt class="col-5">Роль</dt><dd class="col-7">@Roles.Name(Model.Me.Role)</dd>
+                <dt class="col-5">Группа</dt><dd class="col-7">@(Model.Groups.Count == 0 ? "—" : string.Join(", ", Model.Groups))</dd>
+                <dt class="col-5">Почта</dt><dd class="col-7">@(Model.Me.Email ?? "—")</dd>
+                <dt class="col-5">В системе с</dt><dd class="col-7">@Fmt.Date(Model.Me.CreatedAt)</dd>
+            </dl>
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card"><div class="card-body">
+            <h2 class="h5">Смена пароля</h2>
+            <form method="post" novalidate>
+                <div class="mb-3">
+                    <label asp-for="Current" class="form-label">Текущий пароль</label>
+                    <input asp-for="Current" type="password" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="Current" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="New" class="form-label">Новый пароль</label>
+                    <input asp-for="New" type="password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="New" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Confirm" class="form-label">Повтор нового пароля</label>
+                    <input asp-for="Confirm" type="password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="Confirm" class="text-danger small"></span>
+                </div>
+                <button class="btn btn-primary" type="submit">Изменить пароль</button>
+            </form>
+        </div></div>
+    </div>
+</div>

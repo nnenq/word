@@ -1,0 +1,89 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Teacher.DisciplineModel
+@{ ViewData["Title"] = Model.Discipline.Title; }
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/Teacher/Disciplines">Дисциплины</a></li><li class="breadcrumb-item active">@Model.Discipline.Title</li></ol></nav>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="h4 mb-0">Темы и лекции</h1>
+            <a class="btn btn-sm btn-outline-secondary" href="/Study/Discipline/@Model.Discipline.Id"><i class="bi bi-eye"></i> Как видит студент</a>
+        </div>
+        <p class="small text-body-secondary">Студенты изучают лекции строго в этом порядке: темы сверху вниз, лекции внутри темы сверху вниз. Порядок меняется стрелками.</p>
+        @{ int ti = 0; }
+        @foreach (var t in Model.Topics)
+        {
+            ti++;
+            <div class="card mb-3">
+                <div class="card-header bg-white">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="text-body-secondary small">Тема @ti</span>
+                        <form method="post" asp-page-handler="RenameTopic" asp-route-id="@Model.Discipline.Id" class="d-flex gap-1 flex-grow-1">
+                            <input type="hidden" name="topicId" value="@t.Id" />
+                            <input class="form-control form-control-sm fw-semibold" name="topicTitle" value="@t.Title" aria-label="Название темы" maxlength="150" />
+                            <button class="btn btn-sm btn-outline-secondary" type="submit" title="Сохранить название"><i class="bi bi-check-lg"></i></button>
+                        </form>
+                        <div class="order-btns text-nowrap">
+                            <form method="post" asp-page-handler="MoveTopic" asp-route-id="@Model.Discipline.Id"><input type="hidden" name="topicId" value="@t.Id" /><input type="hidden" name="dir" value="-1" /><button class="btn btn-sm btn-light" title="Выше" disabled="@(ti == 1)"><i class="bi bi-arrow-up"></i></button></form>
+                            <form method="post" asp-page-handler="MoveTopic" asp-route-id="@Model.Discipline.Id"><input type="hidden" name="topicId" value="@t.Id" /><input type="hidden" name="dir" value="1" /><button class="btn btn-sm btn-light" title="Ниже" disabled="@(ti == Model.Topics.Count)"><i class="bi bi-arrow-down"></i></button></form>
+                            <form method="post" asp-page-handler="DeleteTopic" asp-route-id="@Model.Discipline.Id" data-confirm="Удалить тему «@t.Title» со всеми лекциями и результатами студентов?"><input type="hidden" name="topicId" value="@t.Id" /><button class="btn btn-sm btn-light text-danger" title="Удалить тему"><i class="bi bi-trash"></i></button></form>
+                        </div>
+                    </div>
+                </div>
+                <ul class="list-group list-group-flush">
+                    @{ int li = 0; }
+                    @foreach (var l in t.Lectures)
+                    {
+                        li++;
+                        <li class="list-group-item d-flex flex-wrap flex-md-nowrap align-items-center gap-2">
+                            <span class="lecture-num">@l.Number</span>
+                            <div class="flex-grow-1" style="min-width:0">
+                                <a class="fw-semibold" href="/Teacher/Lecture/@l.Id">@l.Title</a>
+                                <div class="small text-body-secondary">
+                                    вопросов: @l.ControlQuestions.Count · тест: @(l.Test == null || l.Test.Questions.Count == 0 ? "нет" : $"{l.Test.Questions.Count} вопр., порог {l.Test.PassPercent}%")
+                                    @if (l.MaterialFile != null) { <span> · <i class="bi bi-paperclip"></i> @l.MaterialName</span> }
+                                </div>
+                            </div>
+                            <div class="order-btns text-nowrap">
+                                <form method="post" asp-page-handler="MoveLecture" asp-route-id="@Model.Discipline.Id"><input type="hidden" name="lectureId" value="@l.Id" /><input type="hidden" name="dir" value="-1" /><button class="btn btn-sm btn-light" title="Выше" disabled="@(li == 1)"><i class="bi bi-arrow-up"></i></button></form>
+                                <form method="post" asp-page-handler="MoveLecture" asp-route-id="@Model.Discipline.Id"><input type="hidden" name="lectureId" value="@l.Id" /><input type="hidden" name="dir" value="1" /><button class="btn btn-sm btn-light" title="Ниже" disabled="@(li == t.Lectures.Count)"><i class="bi bi-arrow-down"></i></button></form>
+                                <a class="btn btn-sm btn-outline-primary" href="/Teacher/Lecture/@l.Id"><i class="bi bi-pencil"></i> Изменить</a>
+                            </div>
+                        </li>
+                    }
+                    <li class="list-group-item bg-body-tertiary">
+                        <form method="post" asp-page-handler="AddLecture" asp-route-id="@Model.Discipline.Id" class="d-flex gap-2">
+                            <input type="hidden" name="topicId" value="@t.Id" />
+                            <input class="form-control form-control-sm" name="lectureTitle" placeholder="Название новой лекции" maxlength="150" aria-label="Название новой лекции" />
+                            <button class="btn btn-sm btn-primary text-nowrap" type="submit"><i class="bi bi-plus-lg"></i> Лекция</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        }
+        <div class="card"><div class="card-body">
+            <form method="post" asp-page-handler="AddTopic" asp-route-id="@Model.Discipline.Id" class="d-flex gap-2">
+                <input class="form-control" name="topicTitle" placeholder="Название новой темы, например «Тестирование программного обеспечения»" maxlength="150" aria-label="Название новой темы" />
+                <button class="btn btn-primary text-nowrap" type="submit"><i class="bi bi-plus-lg"></i> Тема</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card sticky-panel"><div class="card-body">
+            <h2 class="h5">Дисциплина</h2>
+            <form method="post" asp-page-handler="Save" asp-route-id="@Model.Discipline.Id" novalidate>
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label">Название</label>
+                    <input asp-for="Title" class="form-control" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Описание</label>
+                    <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                </div>
+                <button class="btn btn-primary" type="submit">Сохранить</button>
+                <a class="btn btn-outline-secondary" href="/Teacher/Report?discipline=@Model.Discipline.Id">Отчёт</a>
+            </form>
+        </div></div>
+    </div>
+</div>

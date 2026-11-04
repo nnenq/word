@@ -1,0 +1,68 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Teacher.StudentModel
+@{ ViewData["Title"] = Model.Student.FullName; var s = Model.Student; }
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/Teacher/Students">Студенты</a></li><li class="breadcrumb-item active">@s.FullName</li></ol></nav>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div><h1 class="h3 mb-0">@s.FullName</h1><div class="text-body-secondary">группа @(string.IsNullOrEmpty(Model.Group) ? "—" : Model.Group) · логин @s.Login · в системе с @Fmt.Date(s.CreatedAt)@(s.IsBlocked ? " · заблокирован" : "")</div></div>
+    <a class="btn btn-outline-secondary" href="/Teacher/UserEdit/@s.Id"><i class="bi bi-person-gear"></i> Учётная запись</a>
+</div>
+
+@foreach (var p in Model.Plans)
+{
+    <div class="card mb-3">
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h2 class="h6 mb-0">@p.Discipline.Title</h2>
+            <div class="d-flex align-items-center gap-2" style="min-width:220px"><div class="progress flex-grow-1"><div class="progress-bar @(p.Percent == 100 ? "bg-success" : "")" style="width:@p.Percent%"></div></div><b>@p.Percent%</b></div>
+        </div>
+        <div class="table-responsive"><table class="table mb-0">
+            <thead><tr><th>Лекция</th><th>Состояние</th><th class="text-end">Контр. вопросы</th><th class="text-end">Лучший тест</th><th class="text-end">Попытки</th><th>Пройдена</th><th class="text-end">Действия</th></tr></thead>
+            <tbody>
+            @foreach (var l in p.Lectures)
+            {
+                <tr>
+                    <td><a href="/Teacher/Lecture/@l.Lecture.Id">@l.Lecture.Number. @l.Lecture.Title</a>@if (l.OpenedByTeacher) { <span class="badge text-bg-info ms-1">открыта вручную</span> }</td>
+                    <td><partial name="_State" model="l.State" /></td>
+                    <td class="text-end small">@(l.ControlTotal == 0 ? "—" : $"{l.ControlAnswered}/{l.ControlTotal} отв., {l.ControlCorrect} верно")@(l.ControlPending > 0 ? ", на проверке" : "")</td>
+                    <td class="text-end">@(l.BestPercent == null ? "—" : $"{l.BestPercent}%")</td>
+                    <td class="text-end small">@(l.HasTest ? $"{l.AttemptsUsed}" + (l.AttemptsLeft == null ? "" : $" / осталось {l.AttemptsLeft}") : "—")</td>
+                    <td class="small text-nowrap">@Fmt.DateTime(l.Progress?.CompletedAt)</td>
+                    <td class="text-end text-nowrap">
+                        @if (l.State == LectureState.Locked)
+                        {
+                            <form method="post" asp-page-handler="Open" asp-route-id="@s.Id" class="d-inline" data-confirm="Открыть лекцию @l.Lecture.Number «@l.Lecture.Title» для @s.FullName без выполнения условий предыдущей лекции? Действие запишется в журнал.">
+                                <input type="hidden" name="lectureId" value="@l.Lecture.Id" /><button class="btn btn-sm btn-outline-primary" title="Открыть лекцию вручную"><i class="bi bi-unlock"></i></button>
+                            </form>
+                        }
+                        @if (l.HasTest && !l.TestPassed && l.State != LectureState.Locked && l.AttemptsLeft != null)
+                        {
+                            <form method="post" asp-page-handler="Attempt" asp-route-id="@s.Id" class="d-inline">
+                                <input type="hidden" name="lectureId" value="@l.Lecture.Id" /><button class="btn btn-sm btn-outline-success" title="Выдать дополнительную попытку теста"><i class="bi bi-plus-circle"></i></button>
+                            </form>
+                        }
+                        @if (l.AttemptsUsed > 0 || l.ControlAnswered > 0 || l.Progress != null)
+                        {
+                            <form method="post" asp-page-handler="Reset" asp-route-id="@s.Id" class="d-inline" data-confirm="Сбросить результаты лекции @l.Lecture.Number для @s.FullName? Ответы, попытки теста и отметка о прохождении будут удалены — лекцию нужно будет пройти заново.">
+                                <input type="hidden" name="lectureId" value="@l.Lecture.Id" /><button class="btn btn-sm btn-outline-danger" title="Сбросить результаты лекции"><i class="bi bi-arrow-counterclockwise"></i></button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table></div>
+    </div>
+}
+<div class="small text-body-secondary mb-4"><i class="bi bi-unlock"></i> — открыть лекцию вручную, <i class="bi bi-plus-circle"></i> — дополнительная попытка теста, <i class="bi bi-arrow-counterclockwise"></i> — сбросить результаты лекции. Все действия записываются в журнал событий.</div>
+
+<h2 class="h5">Попытки тестов</h2>
+<div class="card"><div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>Дата</th><th>Лекция</th><th class="text-end">Правильно</th><th class="text-end">Результат</th></tr></thead>
+    <tbody>
+    @foreach (var a in Model.Attempts)
+    {
+        <tr><td class="small text-nowrap">@Fmt.DateTime(a.FinishedAt)</td><td>@a.Test.Lecture.Number. @a.Test.Lecture.Title</td><td class="text-end">@a.Correct из @a.Total</td>
+            <td class="text-end"><a href="/Study/Result/@a.Id" class="state @(a.Status == AttemptStatus.Passed ? "state-completed" : "state-locked")">@a.Percent%</a></td></tr>
+    }
+    @if (Model.Attempts.Count == 0) { <tr><td colspan="4" class="text-center text-body-secondary py-4">Попыток нет.</td></tr> }
+    </tbody>
+</table></div></div>

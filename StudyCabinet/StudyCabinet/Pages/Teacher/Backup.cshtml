@@ -1,0 +1,33 @@
+@page
+@model StudyCabinet.Pages.Teacher.BackupModel
+@{ ViewData["Title"] = "Резервные копии"; }
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div><h1 class="h3 mb-0">Резервное копирование</h1><div class="small text-body-secondary">Папка копий: <code>@Model.Folder</code></div></div>
+    <form method="post" asp-page-handler="Create"><button class="btn btn-primary"><i class="bi bi-archive"></i> Создать копию сейчас</button></form>
+</div>
+<div class="alert alert-info small">
+    Копия — архив ZIP: база данных @(Model.IsSqlite ? "(файл study.db)" : "(для SQL Server — отдельно командой BACKUP DATABASE, см. инструкцию)") и все загруженные файлы лекций.
+    Рекомендуется создавать копию ежедневно (скрипт <code>backup.bat</code> в планировщике заданий) и хранить её ещё и на другом носителе — правило 3-2-1.
+</div>
+<div class="card"><div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>Файл</th><th>Создан</th><th class="text-end">Размер</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var f in Model.Files)
+    {
+        <tr>
+            <td><i class="bi bi-file-zip"></i> @f.Name</td><td class="small">@Fmt.DateTime(f.CreationTime)</td><td class="text-end small">@Fmt.Size(f.Length)</td>
+            <td class="text-end text-nowrap">
+                <a class="btn btn-sm btn-outline-primary" href="/Teacher/Backup?handler=Download&name=@f.Name"><i class="bi bi-download"></i></a>
+                @if (Model.IsSqlite)
+                {
+                    <form method="post" asp-page-handler="Restore" class="d-inline" data-confirm="Восстановить данные из копии @f.Name? Текущие данные будут заменены (перед этим автоматически создастся ещё одна копия).">
+                        <input type="hidden" name="name" value="@f.Name" /><button class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-counterclockwise"></i> Восстановить</button>
+                    </form>
+                }
+                <form method="post" asp-page-handler="Delete" class="d-inline" data-confirm="Удалить копию @f.Name?"><input type="hidden" name="name" value="@f.Name" /><button class="btn btn-sm btn-outline-danger" aria-label="Удалить"><i class="bi bi-trash"></i></button></form>
+            </td>
+        </tr>
+    }
+    @if (Model.Files.Count == 0) { <tr><td colspan="4" class="text-center text-body-secondary py-4">Копий пока нет.</td></tr> }
+    </tbody>
+</table></div></div>

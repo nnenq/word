@@ -1,0 +1,86 @@
+@page
+@model StudyCabinet.Pages.Study.ResultsModel
+@{ ViewData["Title"] = "Мои результаты"; }
+<h1 class="h3 mb-3">Мои результаты</h1>
+
+<div class="row g-3 mb-4">
+    @foreach (var p in Model.Plans)
+    {
+        <div class="col-md-6"><div class="kpi">
+            <small>@p.Discipline.Title</small>
+            <div class="d-flex align-items-baseline gap-2"><b>@p.Percent%</b><span class="small text-body-secondary">пройдено @p.Completed из @p.Lectures.Count</span></div>
+            <div class="progress mt-2"><div class="progress-bar @(p.Percent == 100 ? "bg-success" : "")" style="width:@p.Percent%"></div></div>
+        </div></div>
+    }
+</div>
+
+<h2 class="h5">Лекции</h2>
+<div class="card mb-4"><div class="table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>Дисциплина</th><th>Лекция</th><th>Состояние</th><th class="text-end">Контрольные вопросы</th><th class="text-end">Лучший тест</th><th class="text-end">Попыток</th><th>Пройдена</th></tr></thead>
+        <tbody>
+        @foreach (var p in Model.Plans)
+        {
+            foreach (var l in p.Lectures)
+            {
+                <tr>
+                    <td class="small">@p.Discipline.Title</td>
+                    <td>@if (l.Open) { <a href="/Study/Lecture/@l.Lecture.Id">@l.Lecture.Number. @l.Lecture.Title</a> } else { <span class="text-body-secondary">@l.Lecture.Number. @l.Lecture.Title</span> }</td>
+                    <td><partial name="_State" model="l.State" /></td>
+                    <td class="text-end">@(l.ControlTotal == 0 ? "—" : $"{l.ControlCorrect} / {l.ControlTotal}")</td>
+                    <td class="text-end">@(l.BestPercent == null ? "—" : $"{l.BestPercent}%")</td>
+                    <td class="text-end">@(l.HasTest ? l.AttemptsUsed.ToString() : "—")</td>
+                    <td class="small text-nowrap">@Fmt.DateTime(l.Progress?.CompletedAt)</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div></div>
+
+<h2 class="h5">Все попытки тестов</h2>
+<div class="card mb-4"><div class="table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>Дата</th><th>Лекция</th><th class="text-end">Правильно</th><th class="text-end">Процент</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var a in Model.Attempts)
+        {
+            <tr>
+                <td class="text-nowrap">@Fmt.DateTime(a.FinishedAt)</td>
+                <td>@a.Test.Lecture.Number. @a.Test.Lecture.Title <div class="small text-body-secondary">@a.Test.Lecture.Topic.Discipline.Title</div></td>
+                <td class="text-end">@a.Correct из @a.Total</td>
+                <td class="text-end fw-semibold">@a.Percent%</td>
+                <td class="text-end"><a href="/Study/Result/@a.Id" class="state @(a.Status == AttemptStatus.Passed ? "state-completed" : "state-locked")">@(a.Status == AttemptStatus.Passed ? "Сдан" : a.Status == AttemptStatus.Expired ? "Время вышло" : "Не сдан")</a></td>
+            </tr>
+        }
+        @if (Model.Attempts.Count == 0) { <tr><td colspan="5" class="text-center text-body-secondary py-4">Тестов пока не было.</td></tr> }
+        </tbody>
+    </table>
+</div></div>
+
+<h2 class="h5">Ответы на контрольные вопросы</h2>
+<div class="card"><div class="table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>Дата</th><th>Лекция</th><th>Вопрос</th><th>Статус</th><th>Комментарий преподавателя</th></tr></thead>
+        <tbody>
+        @foreach (var a in Model.Answers)
+        {
+            <tr>
+                <td class="text-nowrap small">@Fmt.DateTime(a.AnsweredAt)</td>
+                <td class="small">@a.ControlQuestion.Lecture.Number. @a.ControlQuestion.Lecture.Title</td>
+                <td class="small">@a.ControlQuestion.Text</td>
+                <td>@switch (a.Status)
+                    {
+                        case AnswerStatus.Correct: <span class="state state-completed">Верно</span> break;
+                        case AnswerStatus.Accepted: <span class="state state-completed">Принят</span> break;
+                        case AnswerStatus.Pending: <span class="state state-pending">На проверке</span> break;
+                        case AnswerStatus.Rejected: <span class="state state-locked text-danger">На доработку</span> break;
+                        default: <span class="state state-locked text-danger">Неверно</span> break;
+                    }</td>
+                <td class="small">@(a.TeacherComment ?? "")</td>
+            </tr>
+        }
+        @if (Model.Answers.Count == 0) { <tr><td colspan="5" class="text-center text-body-secondary py-4">Ответов пока нет.</td></tr> }
+        </tbody>
+    </table>
+</div></div>

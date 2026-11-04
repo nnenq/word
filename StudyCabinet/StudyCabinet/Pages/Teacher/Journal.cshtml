@@ -1,0 +1,16 @@
+@page
+@model StudyCabinet.Pages.Teacher.JournalModel
+@{ ViewData["Title"] = "Журнал событий"; }
+<h1 class="h3 mb-1">Журнал событий</h1>
+<p class="text-body-secondary">Здесь фиксируются действия преподавателя: проверка ответов, ручное открытие лекций, дополнительные попытки, сброс результатов, изменения материалов и учётных записей, резервное копирование.</p>
+<form method="get" class="d-flex gap-2 mb-3" style="max-width:520px"><input class="form-control" name="q" value="@Model.Q" placeholder="Поиск: студент, лекция, действие" aria-label="Поиск" /><button class="btn btn-primary">Найти</button></form>
+<div class="card"><div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>Время</th><th>Кто</th><th>Действие</th><th>Подробности</th></tr></thead>
+    <tbody>
+    @foreach (var e in Model.Items)
+    {
+        <tr><td class="small text-nowrap">@Fmt.DateTime(e.At)</td><td class="small">@e.UserName</td><td class="fw-semibold small">@e.Action</td><td class="small">@e.Details</td></tr>
+    }
+    @if (Model.Items.Count == 0) { <tr><td colspan="4" class="text-center text-body-secondary py-4">Записей нет.</td></tr> }
+    </tbody>
+</table></div></div>

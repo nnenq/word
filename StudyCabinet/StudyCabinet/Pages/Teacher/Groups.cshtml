@@ -1,0 +1,24 @@
+@page
+@model StudyCabinet.Pages.Teacher.GroupsModel
+@{ ViewData["Title"] = "Учебные группы"; }
+<h1 class="h3 mb-3">Учебные группы</h1>
+<div class="row g-4">
+    <div class="col-lg-7"><div class="card"><ul class="list-group list-group-flush">
+        @foreach (var (g, c) in Model.Rows)
+        {
+            <li class="list-group-item d-flex flex-wrap align-items-center gap-2">
+                <form method="post" asp-page-handler="Rename" asp-route-id="@g.Id" class="d-flex gap-1 flex-grow-1">
+                    <input class="form-control form-control-sm fw-semibold" name="name" value="@g.Name" maxlength="50" aria-label="Название группы" style="max-width:220px" />
+                    <button class="btn btn-sm btn-outline-secondary" title="Сохранить"><i class="bi bi-check-lg"></i></button>
+                </form>
+                <a class="small" href="/Teacher/Students?group=@g.Id">@c @Fmt.Plural(c, "студент", "студента", "студентов")</a>
+                <a class="btn btn-sm btn-outline-primary" href="/Teacher/Report?group=@g.Id">Отчёт</a>
+                <form method="post" asp-page-handler="Delete" asp-route-id="@g.Id" data-confirm="Удалить группу @g.Name?"><button class="btn btn-sm btn-outline-danger" aria-label="Удалить"><i class="bi bi-trash"></i></button></form>
+            </li>
+        }
+    </ul></div></div>
+    <div class="col-lg-5"><div class="card"><div class="card-body">
+        <h2 class="h5">Новая группа</h2>
+        <form method="post" asp-page-handler="Add" class="d-flex gap-2"><input class="form-control" name="name" placeholder="Например, ИС-23" maxlength="50" aria-label="Название группы" /><button class="btn btn-primary">Добавить</button></form>
+    </div></div></div>
+</div>

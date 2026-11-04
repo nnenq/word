@@ -1,0 +1,71 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Study.DisciplineModel
+@{ ViewData["Title"] = Model.Plan.Discipline.Title; var p = Model.Plan; }
+
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/Study">Мои дисциплины</a></li><li class="breadcrumb-item active">@p.Discipline.Title</li></ol></nav>
+
+<div class="card mb-3"><div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
+        <div>
+            <h1 class="h3 mb-1">@p.Discipline.Title</h1>
+            <p class="text-body-secondary mb-0">@p.Discipline.Description</p>
+        </div>
+        <div class="text-end">
+            <div class="display-6 fw-bold @(p.Percent == 100 ? "text-success" : "text-primary")">@p.Percent%</div>
+            <div class="small text-body-secondary">освоено · @p.Completed из @p.Lectures.Count @Fmt.Plural(p.Lectures.Count, "лекции", "лекций", "лекций")</div>
+        </div>
+    </div>
+    <div class="progress mt-3"><div class="progress-bar @(p.Percent == 100 ? "bg-success" : "")" style="width:@p.Percent%"></div></div>
+</div></div>
+
+@foreach (var topic in p.Lectures.GroupBy(l => l.Topic.Id))
+{
+    var first = topic.First();
+    var done = topic.Count(l => l.State == LectureState.Completed);
+    <div class="card mb-3">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div><span class="text-body-secondary small">Тема @first.Topic.Order</span><h2 class="h6 mb-0">@first.Topic.Title</h2></div>
+            <span class="small text-body-secondary text-nowrap ms-2">@done / @topic.Count()</span>
+        </div>
+        <div>
+            @foreach (var l in topic)
+            {
+                var cls = l.State switch { LectureState.Locked => "locked", LectureState.Completed => "completed", _ => "" };
+                @if (l.State == LectureState.Locked)
+                {
+                    <div class="lecture-row @cls" title="Откроется после прохождения предыдущей лекции">
+                        <span class="lecture-num">@l.Lecture.Number</span>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-semibold">@l.Lecture.Title</div>
+                            <div class="lecture-meta">Откроется после прохождения предыдущей лекции</div>
+                        </div>
+                        <partial name="_State" model="l.State" />
+                    </div>
+                }
+                else
+                {
+                    <a class="lecture-row @cls" href="/Study/Lecture/@l.Lecture.Id">
+                        <span class="lecture-num">@l.Lecture.Number</span>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-semibold">@l.Lecture.Title</div>
+                            <div class="lecture-meta">
+                                @if (l.ControlTotal > 0) { <span class="me-3"><i class="bi bi-question-circle"></i> вопросы: @l.ControlAnswered/@l.ControlTotal</span> }
+                                @if (l.HasTest)
+                                {
+                                    <span class="me-3"><i class="bi bi-clipboard-check"></i> тест: @(l.BestPercent == null ? "не пройден" : $"лучший {l.BestPercent}%")</span>
+                                    <span><i class="bi bi-arrow-repeat"></i> попыток: @l.AttemptsUsed@(l.AttemptsLeft == null ? "" : $", осталось {l.AttemptsLeft}")</span>
+                                }
+                                @if (l.OpenedByTeacher) { <span class="ms-2 badge text-bg-info">открыта преподавателем</span> }
+                            </div>
+                        </div>
+                        <partial name="_State" model="l.State" />
+                    </a>
+                }
+            }
+        </div>
+    </div>
+}
+@if (p.Lectures.Count == 0)
+{
+    <div class="card"><div class="card-body text-center text-body-secondary py-5">В дисциплине пока нет лекций.</div></div>
+}

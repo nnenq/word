@@ -1,0 +1,31 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Study.AttemptModel
+@using StudyCabinet.Pages.Shared
+@{ var l = Model.Attempt.Test.Lecture; ViewData["Title"] = $"Тест: лекция {l.Number}"; }
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div>
+        <div class="text-body-secondary small">Тест по лекции @l.Number</div>
+        <h1 class="h4 mb-0">@l.Title</h1>
+    </div>
+    <div class="text-end small">
+        <div>Проходной результат: <b>@Model.Attempt.Test.PassPercent%</b> · вопросов: <b>@Model.Questions.Count</b></div>
+        @if (Model.Attempt.Deadline != null)
+        {
+            <div class="fs-5">Осталось: <span class="timer" data-deadline data-left="@Model.SecondsLeft" data-form="testForm">--:--</span></div>
+        }
+    </div>
+</div>
+
+<form method="post" id="testForm" data-test>
+    @{ int n = 0; }
+    @foreach (var (q, order) in Model.Questions)
+    {
+        <partial name="_Question" model="new QuestionView { Q = q, Number = ++n, Order = order }" />
+    }
+    <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-primary btn-lg" type="submit" data-confirm="Завершить тест и отправить ответы? Изменить их после отправки будет нельзя.">
+            <i class="bi bi-send-check"></i> Завершить тест
+        </button>
+    </div>
+</form>

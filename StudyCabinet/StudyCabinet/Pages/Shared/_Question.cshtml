@@ -1,0 +1,58 @@
+@model StudyCabinet.Pages.Shared.QuestionView
+@{
+    var q = Model.Q; var name = $"q{q.Id}";
+    var cls = Model.Result switch { "correct" => "is-correct", "wrong" => "is-wrong", "pending" => "is-pending", _ => "" };
+}
+<div class="question @cls" id="question-@q.Id">
+    <div class="d-flex justify-content-between gap-2 align-items-start">
+        <div class="question-title">@Model.Number. @q.Text</div>
+        <span class="badge text-bg-light border">@QuestionTypes.Name(q.Type)</span>
+    </div>
+    @switch (q.Type)
+    {
+        case QuestionType.Single:
+            foreach (var o in Model.Options)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="@name" id="o@(o.Id)" value="@o.Id" checked="@Model.Answer.Contains(o.Id.ToString())" disabled="@Model.Disabled" />
+                    <label class="form-check-label" for="o@(o.Id)">@o.Text</label>
+                </div>
+            }
+            break;
+        case QuestionType.Multiple:
+            <div class="small text-body-secondary mb-1">Отметьте все правильные варианты</div>
+            foreach (var o in Model.Options)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="@name" id="o@(o.Id)" value="@o.Id" checked="@Model.Answer.Contains(o.Id.ToString())" disabled="@Model.Disabled" />
+                    <label class="form-check-label" for="o@(o.Id)">@o.Text</label>
+                </div>
+            }
+            break;
+        case QuestionType.Matching:
+            var choices = Model.MatchChoices;
+            foreach (var o in Model.Options)
+            {
+                var chosen = Model.MatchAnswer(o.Id);
+                <div class="match-row">
+                    <label for="m@(o.Id)">@o.Text</label>
+                    <select class="form-select form-select-sm" name="@(name)_@o.Id" id="m@(o.Id)" disabled="@Model.Disabled">
+                        <option value="">— выберите —</option>
+                        @foreach (var c in choices) { <option value="@c" selected="@(c == chosen)">@c</option> }
+                    </select>
+                </div>
+            }
+            break;
+        case QuestionType.Essay:
+            <textarea class="form-control" name="@name" rows="5" maxlength="3500" disabled="@Model.Disabled" placeholder="Развёрнутый ответ — его проверит преподаватель">@Model.Answer.FirstOrDefault()</textarea>
+            break;
+        default:
+            <input class="form-control" name="@name" value="@Model.Answer.FirstOrDefault()" maxlength="300" autocomplete="off" disabled="@Model.Disabled"
+                   placeholder="@(q.Type == QuestionType.Gap ? "Пропущенное слово или термин" : "Краткий ответ")" />
+            break;
+    }
+    @if (Model.Note != null)
+    {
+        <div class="small mt-2">@Html.Raw(Model.Note)</div>
+    }
+</div>

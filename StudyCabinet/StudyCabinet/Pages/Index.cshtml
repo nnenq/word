@@ -1,0 +1,42 @@
+@page
+@model StudyCabinet.Pages.IndexModel
+@{ ViewData["Title"] = "Главная"; }
+
+<section class="hero-card">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-7">
+            <h1 class="display-6 fw-bold mb-3">Электронный учебный кабинет</h1>
+            <p class="lead mb-4">Лекции по дисциплинам, контрольные вопросы и тесты. Каждая следующая лекция открывается только после того,
+                как пройдена предыдущая: студент ответил на вопросы и сдал тест с нужным результатом.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary btn-lg" href="/Account/Login"><i class="bi bi-box-arrow-in-right"></i> Войти</a>
+                <a class="btn btn-outline-primary btn-lg" href="/Account/Register">Регистрация студента</a>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="steps">
+                <div class="step"><span>1</span><div><b>Изучите теорию</b><small>текст лекции, PDF или документ Word</small></div></div>
+                <div class="step"><span>2</span><div><b>Ответьте на контрольные вопросы</b><small>краткий ответ, выбор, соответствие, пропущенное слово</small></div></div>
+                <div class="step"><span>3</span><div><b>Пройдите тест</b><small>например, не ниже 70 % правильных ответов</small></div></div>
+                <div class="step done"><span><i class="bi bi-unlock-fill"></i></span><div><b>Откроется следующая лекция</b><small>прогресс сохраняется на любом устройстве</small></div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-3 mt-1">
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h5"><i class="bi bi-person-video3 text-primary"></i> Преподаватель</h2>
+            <p class="mb-0 text-body-secondary">Создаёт дисциплины, темы и лекции, загружает материалы, составляет вопросы и тесты, задаёт условия открытия,
+                проверяет развёрнутые ответы, смотрит результаты по группам и выгружает отчёты.</p>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h5"><i class="bi bi-person-workspace text-primary"></i> Студент</h2>
+            <p class="mb-0 text-body-secondary">Изучает лекции по порядку, отвечает на контрольные вопросы, проходит тесты и видит свой прогресс:
+                пройденные и закрытые лекции, баллы, попытки и общий процент освоения.</p>
+        </div></div>
+    </div>
+</div>

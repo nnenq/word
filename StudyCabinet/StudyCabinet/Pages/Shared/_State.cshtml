@@ -1,0 +1,8 @@
+@model LectureState
+@switch (Model)
+{
+    case LectureState.Completed: <span class="state state-completed"><i class="bi bi-check-circle-fill"></i> Пройдена</span> break;
+    case LectureState.Pending: <span class="state state-pending"><i class="bi bi-hourglass-split"></i> На проверке</span> break;
+    case LectureState.Available: <span class="state state-available"><i class="bi bi-unlock-fill"></i> Доступна</span> break;
+    default: <span class="state state-locked"><i class="bi bi-lock-fill"></i> Закрыта</span> break;
+}

@@ -1,0 +1,35 @@
+@page
+@model StudyCabinet.Pages.Teacher.StudentsModel
+@{ ViewData["Title"] = "Студенты"; }
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <h1 class="h3 mb-0">Студенты</h1>
+    <a class="btn btn-outline-primary" href="/Teacher/UserEdit?role=Student"><i class="bi bi-person-plus"></i> Добавить студента</a>
+</div>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-sm-5"><input class="form-control" name="q" value="@Model.Q" placeholder="Поиск по ФИО или логину" aria-label="Поиск" /></div>
+    <div class="col-sm-4"><select class="form-select" name="group" aria-label="Группа"><option value="">Все группы</option>@foreach (var g in Model.Groups) { <option value="@g.Id" selected="@(Model.Group == g.Id)">@g.Name</option> }</select></div>
+    <div class="col-sm-3 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Найти</button><a class="btn btn-outline-secondary" href="/Teacher/Students">Сброс</a></div>
+</form>
+<div class="card"><div class="table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>Студент</th><th>Группа</th>@foreach (var d in Model.Disciplines) { <th style="min-width:180px">@d.Title</th> }<th></th></tr></thead>
+        <tbody>
+        @foreach (var (u, g, plans) in Model.Rows)
+        {
+            <tr>
+                <td><a class="fw-semibold" href="/Teacher/Student/@u.Id">@u.FullName</a><div class="small text-body-secondary">@u.Login@(u.IsBlocked ? " · заблокирован" : "")</div></td>
+                <td>@g</td>
+                @foreach (var p in plans)
+                {
+                    <td>
+                        <div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1"><div class="progress-bar @(p.Percent == 100 ? "bg-success" : "")" style="width:@p.Percent%"></div></div><span class="small fw-semibold">@p.Percent%</span></div>
+                        <div class="small text-body-secondary">@(p.Percent == 100 ? "освоена" : p.Current != null ? $"сейчас: лекция {p.Current.Lecture.Number}" : "—")</div>
+                    </td>
+                }
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/Teacher/Student/@u.Id">Прогресс</a></td>
+            </tr>
+        }
+        @if (Model.Rows.Count == 0) { <tr><td colspan="9" class="text-center text-body-secondary py-4">Студенты не найдены.</td></tr> }
+        </tbody>
+    </table>
+</div></div>

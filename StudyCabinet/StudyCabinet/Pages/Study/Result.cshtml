@@ -1,0 +1,62 @@
+@page "{id:int}"
+@model StudyCabinet.Pages.Study.ResultModel
+@{
+    var a = Model.Attempt; var l = a.Test.Lecture;
+    ViewData["Title"] = "Результат теста";
+    var passed = a.Status == AttemptStatus.Passed;
+}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+    @if (Model.ForTeacher) { <li class="breadcrumb-item"><a href="/Teacher/Student/@a.StudentId">@a.Student.FullName</a></li> }
+    else { <li class="breadcrumb-item"><a href="/Study/Discipline/@l.Topic.DisciplineId">@l.Topic.Discipline.Title</a></li> }
+    <li class="breadcrumb-item"><a href="/Study/Lecture/@l.Id?tab=test">Лекция @l.Number</a></li>
+    <li class="breadcrumb-item active">Результат теста</li>
+</ol></nav>
+
+<div class="card mb-3"><div class="card-body">
+    <div class="row g-3 align-items-center">
+        <div class="col-md-3 text-center">
+            <div class="display-5 fw-bold @(passed ? "text-success" : "text-danger")">@a.Percent%</div>
+            <div class="@(passed ? "text-success" : "text-danger") fw-semibold">@(passed ? "Тест сдан" : a.Status == AttemptStatus.Expired ? "Время вышло" : "Тест не сдан")</div>
+        </div>
+        <div class="col-md-9">
+            <h1 class="h5 mb-2">Лекция @l.Number. @l.Title</h1>
+            <div class="row small g-2">
+                <div class="col-sm-6">Правильных ответов: <b>@a.Correct из @a.Total</b></div>
+                <div class="col-sm-6">Проходной результат: <b>@a.Test.PassPercent%</b></div>
+                <div class="col-sm-6">Начат: @Fmt.DateTime(a.StartedAt)</div>
+                <div class="col-sm-6">Завершён: @Fmt.DateTime(a.FinishedAt)</div>
+                @if (Model.ForTeacher) { <div class="col-sm-6">Студент: <b>@a.Student.FullName</b></div> }
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                @if (Model.Next != null) { <a class="btn btn-success" href="/Study/Lecture/@Model.Next.Id">Перейти к лекции @Model.Next.Number <i class="bi bi-arrow-right"></i></a> }
+                else if (Model.Info?.State == LectureState.Completed) { <a class="btn btn-success" href="/Study/Discipline/@l.Topic.DisciplineId">Лекция пройдена — к списку лекций</a> }
+                <a class="btn btn-outline-primary" href="/Study/Lecture/@l.Id?tab=test">Вернуться к лекции</a>
+            </div>
+            @if (Model.Info != null && Model.Info.State != LectureState.Completed && Model.Info.Missing.Count > 0)
+            {
+                <div class="small text-body-secondary mt-2">Для открытия следующей лекции осталось: @string.Join("; ", Model.Info.Missing).</div>
+            }
+        </div>
+    </div>
+</div></div>
+
+<h2 class="h6">Разбор по вопросам</h2>
+<div class="card"><div class="table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>#</th><th>Вопрос</th><th>Ответ</th>@if (Model.ForTeacher) { <th>Правильный ответ</th> }<th class="text-end">Итог</th></tr></thead>
+        <tbody>
+        @{ int n = 0; }
+        @foreach (var (q, ans, ok) in Model.Rows)
+        {
+            <tr>
+                <td>@(++n)</td>
+                <td>@q.Text <div class="small text-body-secondary">@QuestionTypes.Name(q.Type)</div></td>
+                <td class="small">@(ans.Length == 0 ? "—" : Grading.Describe(q, ans))</td>
+                @if (Model.ForTeacher) { <td class="small text-success">@Grading.CorrectText(q)</td> }
+                <td class="text-end">@if (ok) { <i class="bi bi-check-circle-fill text-success" title="Верно"></i> } else { <i class="bi bi-x-circle-fill text-danger" title="Неверно"></i> }</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div></div>
+@if (!Model.ForTeacher) { <p class="small text-body-secondary mt-2">Правильные ответы не показываются, чтобы тест можно было пересдать честно. Повторите материал лекции.</p> }

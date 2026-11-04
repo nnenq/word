@@ -1,0 +1,40 @@
+@page
+@model StudyCabinet.Pages.Teacher.UsersModel
+@{ ViewData["Title"] = "Учётные записи"; }
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <h1 class="h3 mb-0">Учётные записи</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" href="/Teacher/UserEdit?role=Student"><i class="bi bi-person-plus"></i> Студент</a>
+        <a class="btn btn-outline-primary" href="/Teacher/UserEdit?role=Teacher"><i class="bi bi-person-plus"></i> Преподаватель</a>
+    </div>
+</div>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4"><input class="form-control" name="q" value="@Model.Q" placeholder="ФИО, логин или почта" aria-label="Поиск" /></div>
+    <div class="col-md-3"><select class="form-select" name="role" aria-label="Роль"><option value="">Все роли</option><option value="Teacher" selected="@(Model.Role == "Teacher")">Преподаватели</option><option value="Student" selected="@(Model.Role == "Student")">Студенты</option></select></div>
+    <div class="col-md-3"><select class="form-select" name="group" aria-label="Группа"><option value="">Все группы</option>@foreach (var g in Model.Groups) { <option value="@g.Id" selected="@(g.Id == Model.Group)">@g.Name</option> }</select></div>
+    <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary flex-fill">Найти</button><a class="btn btn-outline-secondary" href="/Teacher/Users">Сброс</a></div>
+</form>
+<div class="card"><div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>ФИО</th><th>Логин</th><th>Роль</th><th>Группа</th><th>Почта</th><th>Статус</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var u in Model.Users)
+    {
+        <tr>
+            <td>@u.FullName</td><td><code>@u.Login</code></td>
+            <td>@(u.Role == Roles.Teacher ? Html.Raw("<span class=\"badge text-bg-primary\">Преподаватель</span>") : Html.Raw("<span class=\"badge text-bg-light border\">Студент</span>"))</td>
+            <td>@string.Join(", ", u.Memberships.Select(m => m.Group.Name))</td>
+            <td class="small">@u.Email</td>
+            <td>@(u.IsBlocked ? Html.Raw("<span class=\"state state-locked text-danger\">заблокирован</span>") : Html.Raw("<span class=\"state state-completed\">активен</span>"))</td>
+            <td class="text-end text-nowrap">
+                <a class="btn btn-sm btn-outline-primary" href="/Teacher/UserEdit/@u.Id"><i class="bi bi-pencil"></i></a>
+                @if (u.Id != User.UserId())
+                {
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@u.Id" class="d-inline" data-confirm="Удалить учётную запись @u.FullName вместе со всеми результатами обучения? Если нужно только закрыть доступ — заблокируйте её.">
+                        <button class="btn btn-sm btn-outline-danger" aria-label="Удалить"><i class="bi bi-trash"></i></button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table></div></div>

@@ -1,0 +1,69 @@
+@page
+@model StudyCabinet.Pages.Teacher.IndexModel
+@{ ViewData["Title"] = "Панель преподавателя"; }
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div><h1 class="h3 mb-0">Панель преподавателя</h1><div class="text-body-secondary">@User.FullName()</div></div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" href="/Teacher/Disciplines"><i class="bi bi-journal-plus"></i> Дисциплины и лекции</a>
+        <a class="btn btn-outline-primary" href="/Teacher/Report"><i class="bi bi-table"></i> Отчёт по группе</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg"><div class="kpi"><small>Студентов</small><b>@Model.Students</b></div></div>
+    <div class="col-6 col-lg"><div class="kpi"><small>Дисциплин</small><b>@Model.Disciplines</b></div></div>
+    <div class="col-6 col-lg"><div class="kpi"><small>Лекций</small><b>@Model.Lectures</b></div></div>
+    <div class="col-6 col-lg"><div class="kpi"><small>Попыток тестов за неделю</small><b>@Model.AttemptsWeek</b></div></div>
+    <div class="col-12 col-lg"><a class="kpi d-block text-decoration-none @(Model.PendingReviews > 0 ? "border-warning" : "")" href="/Teacher/Reviews"><small>Ответов на проверку</small><b class="@(Model.PendingReviews > 0 ? "text-warning-emphasis" : "text-body")">@Model.PendingReviews</b></a></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2 class="h5">Нужна помощь <span class="text-body-secondary small fw-normal">— тест не сдан два раза и больше или попытки закончились</span></h2>
+        <div class="card mb-4"><div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr><th>Студент</th><th>Лекция</th><th class="text-end">Лучший</th><th class="text-end">Попыток</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var (s, l) in Model.Stuck)
+                {
+                    <tr>
+                        <td>@s.FullName</td>
+                        <td class="small">@l.Lecture.Number. @l.Lecture.Title</td>
+                        <td class="text-end">@(l.BestPercent?.ToString() ?? "—")%</td>
+                        <td class="text-end">@l.AttemptsUsed@(l.AttemptsLeft == 0 ? " · закончились" : "")</td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/Teacher/Student/@s.Id">Открыть</a></td>
+                    </tr>
+                }
+                @if (Model.Stuck.Count == 0) { <tr><td colspan="5" class="text-center text-body-secondary py-4">Все справляются.</td></tr> }
+                </tbody>
+            </table>
+        </div></div>
+
+        <h2 class="h5">Последние попытки тестов</h2>
+        <div class="card"><div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr><th>Дата</th><th>Студент</th><th>Лекция</th><th class="text-end">Результат</th></tr></thead>
+                <tbody>
+                @foreach (var a in Model.Recent)
+                {
+                    <tr>
+                        <td class="small text-nowrap">@Fmt.DateTime(a.FinishedAt)</td>
+                        <td><a href="/Teacher/Student/@a.StudentId">@a.Student.FullName</a></td>
+                        <td class="small">@a.Test.Lecture.Number. @a.Test.Lecture.Title</td>
+                        <td class="text-end"><a href="/Study/Result/@a.Id" class="state @(a.Status == AttemptStatus.Passed ? "state-completed" : "state-locked")">@a.Percent%</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <h2 class="h5">Журнал событий</h2>
+        <div class="card"><ul class="list-group list-group-flush">
+            @foreach (var e in Model.Journal)
+            {
+                <li class="list-group-item small"><div class="d-flex justify-content-between"><b>@e.Action</b><span class="text-body-secondary">@Fmt.DateTime(e.At)</span></div><div>@e.Details</div><div class="text-body-secondary">@e.UserName</div></li>
+            }
+        </ul><div class="card-footer bg-white"><a href="/Teacher/Journal">Весь журнал</a></div></div>
+    </div>
+</div>

@@ -1,0 +1,31 @@
+@model (int LectureId, IEnumerable<IQuestion> Questions, string Kind)
+@{ var list = Model.Questions.ToList(); }
+@if (list.Count == 0)
+{
+    <div class="card"><div class="card-body text-center text-body-secondary py-4">Вопросов пока нет.</div></div>
+}
+else
+{
+    <div class="card"><ul class="list-group list-group-flush">
+        @{ int n = 0; }
+        @foreach (var q in list)
+        {
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between gap-2">
+                    <div class="flex-grow-1" style="min-width:0">
+                        <div><b>@(++n).</b> @q.Text</div>
+                        <div class="small mt-1"><span class="badge text-bg-light border">@QuestionTypes.Name(q.Type)</span>
+                            <span class="text-success ms-1">Ответ: @Grading.CorrectText(q)</span></div>
+                    </div>
+                    <div class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" href="/Teacher/Question?lecture=@Model.LectureId&kind=@Model.Kind&id=@q.Id"><i class="bi bi-pencil"></i></a>
+                        <form method="post" asp-page="/Teacher/Lecture" asp-page-handler="DeleteQuestion" asp-route-id="@Model.LectureId" class="d-inline" data-confirm="Удалить вопрос «@q.Text»? Ответы студентов на него тоже удалятся.">
+                            <input type="hidden" name="questionId" value="@q.Id" /><input type="hidden" name="kind" value="@Model.Kind" />
+                            <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Удалить"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </li>
+        }
+    </ul></div>
+}

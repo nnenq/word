@@ -1,0 +1,107 @@
+@{
+    var path = (Context.Request.Path.Value ?? "/").ToLowerInvariant();
+    string Act(string prefix, bool exact = false) => (exact ? path == prefix.ToLowerInvariant() : path.StartsWith(prefix.ToLowerInvariant())) ? "active" : "";
+    var authed = User.Identity?.IsAuthenticated == true;
+    var teacher = User.IsTeacher();
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — Электронный учебный кабинет</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<nav class="navbar navbar-expand-xl app-nav sticky-top">
+    <div class="container-xl">
+        <a class="navbar-brand" href="/"><span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span> Учебный кабинет</a>
+        @if (authed)
+        {
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Меню">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+                <ul class="navbar-nav me-auto">
+                    @if (teacher)
+                    {
+                        <li class="nav-item"><a class="nav-link @Act("/Teacher", true)" href="/Teacher"><i class="bi bi-speedometer2"></i> Обзор</a></li>
+                        <li class="nav-item"><a class="nav-link @(path.StartsWith("/teacher/discipline") || path.StartsWith("/teacher/lecture") || path.StartsWith("/teacher/question") ? "active" : "")" href="/Teacher/Disciplines"><i class="bi bi-journal-bookmark"></i> Дисциплины</a></li>
+                        <li class="nav-item"><a class="nav-link @Act("/Teacher/Reviews")" href="/Teacher/Reviews"><i class="bi bi-check2-square"></i> Проверка</a></li>
+                        <li class="nav-item"><a class="nav-link @(path.StartsWith("/teacher/student") ? "active" : "")" href="/Teacher/Students"><i class="bi bi-people"></i> Студенты</a></li>
+                        <li class="nav-item"><a class="nav-link @Act("/Teacher/Report")" href="/Teacher/Report"><i class="bi bi-table"></i> Отчёты</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle @(path.StartsWith("/teacher/user") || path.StartsWith("/teacher/groups") || path.StartsWith("/teacher/journal") || path.StartsWith("/teacher/backup") || path.StartsWith("/teacher/system") ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-gear"></i> Управление</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/Teacher/Users"><i class="bi bi-person-gear"></i> Учётные записи</a></li>
+                                <li><a class="dropdown-item" href="/Teacher/Groups"><i class="bi bi-collection"></i> Учебные группы</a></li>
+                                <li><a class="dropdown-item" href="/Teacher/Journal"><i class="bi bi-clock-history"></i> Журнал событий</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="/Teacher/Backup"><i class="bi bi-archive"></i> Резервные копии</a></li>
+                                <li><a class="dropdown-item" href="/Teacher/System"><i class="bi bi-heart-pulse"></i> Состояние системы</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item"><a class="nav-link @Act("/Study")" href="/Study"><i class="bi bi-eye"></i> Как студент</a></li>
+                    }
+                    else
+                    {
+                        <li class="nav-item"><a class="nav-link @(path == "/study" || path.StartsWith("/study/discipline") || path.StartsWith("/study/lecture") ? "active" : "")" href="/Study"><i class="bi bi-house"></i> Мои дисциплины</a></li>
+                        <li class="nav-item"><a class="nav-link @Act("/Study/Results")" href="/Study/Results"><i class="bi bi-graph-up"></i> Мои результаты</a></li>
+                    }
+                </ul>
+                <div class="d-flex align-items-center gap-2 user-box">
+                    <a class="user-link" href="/Account/Profile" title="@User.FullName() — профиль и смена пароля">
+                        <span class="avatar">@((User.FullName() + "?")[..1])</span>
+                        <span class="lh-sm user-name @(teacher ? "user-name-compact" : "")"><span class="d-block fw-semibold">@User.FullName()</span><small class="text-body-secondary">@(teacher ? "Преподаватель" : "Студент")</small></span>
+                    </a>
+                    <form method="post" asp-page="/Account/Logout" class="m-0">
+                        <button class="btn btn-outline-secondary btn-sm text-nowrap" type="submit"><i class="bi bi-box-arrow-right"></i> Выйти</button>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary btn-sm" href="/Account/Login">Войти</a>
+                <a class="btn btn-primary btn-sm" href="/Account/Register">Регистрация</a>
+            </div>
+        }
+    </div>
+</nav>
+
+<main class="container-xl py-4 main">
+    @if (TempData["Success"] is string ok)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex gap-2" role="status"><i class="bi bi-check-circle-fill"></i><div>@ok</div><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button></div>
+    }
+    @if (TempData["Error"] is string err)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex gap-2" role="alert"><i class="bi bi-exclamation-triangle-fill"></i><div>@err</div><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button></div>
+    }
+    @RenderBody()
+</main>
+
+<footer class="app-foot">
+    <div class="container-xl">Электронный учебный кабинет преподавателя и студента · индивидуальное практическое задание · Кирчу Игорь</div>
+</footer>
+
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Подтверждение</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
+            <div class="modal-body" id="confirmText"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirmOk">Да</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/lib/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
