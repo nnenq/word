@@ -322,6 +322,30 @@ async function submitTest(p) { await p.click('#testForm button[type=submit]'); a
   check('Д16', 'Интерфейс', 'Страницы студента помещаются на экране телефона', wide.length === 0, wide.join(', '));
   await mctx.close();
 
+  // Светлая и тёмная тема: переключение запоминается после перезагрузки
+  await logout(p);
+  await login(p, 'student', 'Student123');
+  await p.goto(B + '/Study/Lecture/1?tab=control');
+  await p.click('[data-theme-toggle]');
+  await p.reload();
+  const darkKept = await p.evaluate(() => document.documentElement.getAttribute('data-bs-theme')) === 'dark';
+  await shot(p, 'temnaya_tema');
+  await p.click('[data-theme-toggle]'); await p.reload();
+  const lightBack = await p.evaluate(() => document.documentElement.getAttribute('data-bs-theme')) === 'light';
+  check('Д18', 'Интерфейс', 'Переключение светлой и тёмной темы, выбор сохраняется после перезагрузки', darkKept && lightBack);
+  await logout(p);
+  // Шапка помещается на распространённых ширинах экрана
+  const narrow = [];
+  for (const w of [1200, 1366, 1920]) {
+    await p.setViewportSize({ width: w, height: 860 });
+    await login(p, 'teacher', 'Teacher123');
+    const right = await p.evaluate(() => document.querySelector('nav form button').getBoundingClientRect().right);
+    if (right > w) narrow.push(w);
+    await logout(p);
+  }
+  await p.setViewportSize({ width: 1366, height: 860 });
+  check('Д19', 'Интерфейс', 'Меню преподавателя помещается на экранах 1200, 1366 и 1920 пикселей', narrow.length === 0, narrow.join(', '));
+
   check('Д17', 'Интерфейс', 'Нет ошибок JavaScript на страницах', jsErrors.length === 0, jsErrors.join('; '));
   fs.writeFileSync(`${OUT}/results.json`, JSON.stringify(results, null, 1));
   const failed = results.filter(r => !r.ok).length;

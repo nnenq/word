@@ -5,19 +5,23 @@
     var teacher = User.IsTeacher();
 }
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+        // Тема применяется до отрисовки страницы, чтобы не было мигания. По умолчанию — светлая.
+        try { if (localStorage.getItem("theme") === "dark") document.documentElement.setAttribute("data-bs-theme", "dark"); } catch (e) { }
+    </script>
     <title>@ViewData["Title"] — Электронный учебный кабинет</title>
     <link rel="stylesheet" href="~/lib/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-<nav class="navbar navbar-expand-xl app-nav sticky-top">
-    <div class="container-xl">
-        <a class="navbar-brand" href="/"><span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span> Учебный кабинет</a>
+<nav class="navbar navbar-expand-xl app-nav sticky-top @(teacher ? "nav-teacher" : "")">
+    <div class="container-xxl">
+        <a class="navbar-brand" href="/" aria-label="Учебный кабинет"><span class="brand-icon"><i class="bi bi-mortarboard-fill"></i></span> <span class="brand-text">Учебный кабинет</span></a>
         @if (authed)
         {
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Меню">
@@ -33,7 +37,7 @@
                         <li class="nav-item"><a class="nav-link @(path.StartsWith("/teacher/student") ? "active" : "")" href="/Teacher/Students"><i class="bi bi-people"></i> Студенты</a></li>
                         <li class="nav-item"><a class="nav-link @Act("/Teacher/Report")" href="/Teacher/Report"><i class="bi bi-table"></i> Отчёты</a></li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle @(path.StartsWith("/teacher/user") || path.StartsWith("/teacher/groups") || path.StartsWith("/teacher/journal") || path.StartsWith("/teacher/backup") || path.StartsWith("/teacher/system") ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-gear"></i> Управление</a>
+                            <a class="nav-link dropdown-toggle @(path.StartsWith("/teacher/user") || path.StartsWith("/teacher/groups") || path.StartsWith("/teacher/journal") || path.StartsWith("/teacher/backup") || path.StartsWith("/teacher/system") || path.StartsWith("/study") ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-gear"></i> Управление</a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="/Teacher/Users"><i class="bi bi-person-gear"></i> Учётные записи</a></li>
                                 <li><a class="dropdown-item" href="/Teacher/Groups"><i class="bi bi-collection"></i> Учебные группы</a></li>
@@ -41,9 +45,10 @@
                                 <li><hr class="dropdown-divider" /></li>
                                 <li><a class="dropdown-item" href="/Teacher/Backup"><i class="bi bi-archive"></i> Резервные копии</a></li>
                                 <li><a class="dropdown-item" href="/Teacher/System"><i class="bi bi-heart-pulse"></i> Состояние системы</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="/Study"><i class="bi bi-eye"></i> Просмотр как студент</a></li>
                             </ul>
                         </li>
-                        <li class="nav-item"><a class="nav-link @Act("/Study")" href="/Study"><i class="bi bi-eye"></i> Как студент</a></li>
                     }
                     else
                     {
@@ -52,6 +57,7 @@
                     }
                 </ul>
                 <div class="d-flex align-items-center gap-2 user-box">
+                    <button class="btn btn-outline-secondary theme-toggle" type="button" data-theme-toggle title="Светлая / тёмная тема" aria-label="Переключить светлую и тёмную тему"><i class="bi bi-moon-stars"></i><i class="bi bi-sun"></i></button>
                     <a class="user-link" href="/Account/Profile" title="@User.FullName() — профиль и смена пароля">
                         <span class="avatar">@((User.FullName() + "?")[..1])</span>
                         <span class="lh-sm user-name @(teacher ? "user-name-compact" : "")"><span class="d-block fw-semibold">@User.FullName()</span><small class="text-body-secondary">@(teacher ? "Преподаватель" : "Студент")</small></span>
@@ -64,7 +70,8 @@
         }
         else
         {
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-secondary theme-toggle" type="button" data-theme-toggle title="Светлая / тёмная тема" aria-label="Переключить светлую и тёмную тему"><i class="bi bi-moon-stars"></i><i class="bi bi-sun"></i></button>
                 <a class="btn btn-outline-primary btn-sm" href="/Account/Login">Войти</a>
                 <a class="btn btn-primary btn-sm" href="/Account/Register">Регистрация</a>
             </div>
@@ -72,7 +79,7 @@
     </div>
 </nav>
 
-<main class="container-xl py-4 main">
+<main class="container-xxl py-4 main">
     @if (TempData["Success"] is string ok)
     {
         <div class="alert alert-success alert-dismissible fade show d-flex gap-2" role="status"><i class="bi bi-check-circle-fill"></i><div>@ok</div><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button></div>
@@ -85,7 +92,7 @@
 </main>
 
 <footer class="app-foot">
-    <div class="container-xl">Электронный учебный кабинет преподавателя и студента · индивидуальное практическое задание · Кирчу Игорь</div>
+    <div class="container-xxl">Электронный учебный кабинет преподавателя и студента · индивидуальное практическое задание · Кирчу Игорь</div>
 </footer>
 
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">

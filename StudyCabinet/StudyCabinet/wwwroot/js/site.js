@@ -71,5 +71,13 @@
     });
 })();
 
+// Переключение светлой и тёмной темы; выбор запоминается в браузере
+document.querySelectorAll("[data-theme-toggle]").forEach(btn => btn.addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.getAttribute("data-bs-theme") !== "dark";
+    root.setAttribute("data-bs-theme", dark ? "dark" : "light");
+    try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) { }
+}));
+
 // Включение подсказок Bootstrap
 document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
