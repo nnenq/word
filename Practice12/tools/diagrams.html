@@ -1,0 +1,76 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>body{background:#fff;margin:0;font-family:Arial} .d{display:inline-block;padding:16px;background:#fff}</style></head><body>
+<div class="d" id="classes"><pre class="mermaid">
+classDiagram
+    direction TB
+    class Program {
+        +Main() меню программы
+        -ReadInt(prompt) int
+        -ParsePlaces(text) List
+        -ShowHall(session)
+    }
+    class BookingService {
+        +MaxSeatsPerOrder = 6
+        -List~Ticket~ tickets
+        +FindSession(id) Session
+        +Buy(sessionId, places) List~Ticket~
+        +Return(ticketId) Ticket
+        +Revenue() int
+        -PrintHallMap(session) [Conditional DEBUG]
+    }
+    class Session {
+        +int Id
+        +string Hall
+        +int Rows
+        +int SeatsPerRow
+        +DateTime Start
+        +int Price
+        +bool[,] Seats
+        +SoldCount() int
+    }
+    class Movie {
+        +int Id
+        +string Title
+        +int DurationMin
+        +string AgeRating
+    }
+    class Ticket {
+        +int Id
+        +int Row
+        +int Seat
+        +int Price
+        +TicketStatus Status
+    }
+    class DemoData {
+        +CreateSessions() List~Session~
+    }
+    Program --> BookingService : вызывает
+    DemoData ..> Session : создаёт
+    BookingService "1" o-- "*" Session
+    BookingService "1" *-- "*" Ticket
+    Session "*" --> "1" Movie
+    Ticket "*" --> "1" Session
+</pre></div>
+<div class="d" id="algo"><pre class="mermaid">
+flowchart TD
+    A([Начало: Buy]) --> B[Debug.WriteLine: номер сеанса и число мест]
+    B --> C{Сеанс найден?}
+    C -- нет --> E1[/ArgumentException/]
+    C -- да --> D{Мест от 1 до 6?}
+    D -- нет --> E1
+    D -- да --> F{Сеанс ещё не начался?}
+    F -- нет --> W[Trace.TraceWarning] --> E2[/InvalidOperationException/]
+    F -- да --> G{Каждое место есть в зале и свободно?}
+    G -- нет --> E3[/Исключение с текстом ошибки/]
+    G -- да --> H[Занять места, создать билеты]
+    H --> I[Debug.Assert: занято мест = было + куплено]
+    I --> J[Trace.TraceInformation: продажа и время Stopwatch]
+    J --> K[PrintHallMap — только в Debug]
+    K --> L([Вернуть список билетов])
+    E1 --> Z([Сообщение об ошибке в консоли])
+    E2 --> Z
+    E3 --> Z
+</pre></div>
+<script>mermaid.initialize({startOnLoad:true, class:{useMaxWidth:false}, flowchart:{useMaxWidth:false,htmlLabels:true}, theme:'neutral', themeVariables:{fontSize:"17px"}});</script>
+</body></html>
