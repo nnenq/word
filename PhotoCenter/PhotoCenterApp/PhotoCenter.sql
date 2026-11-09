@@ -181,7 +181,8 @@ GO
 
 -- Состав заказов (какие услуги в каждом заказе)
 CREATE VIEW vOrderDetails AS
-SELECT  oi.OrderID              AS [Номер заказа],
+SELECT  oi.OrderItemID          AS [Код строки],
+        oi.OrderID              AS [Номер заказа],
         s.Name                  AS [Услуга],
         oi.Quantity             AS [Количество],
         s.Unit                  AS [Ед.],
@@ -189,6 +190,24 @@ SELECT  oi.OrderID              AS [Номер заказа],
         oi.Quantity * oi.Price  AS [Стоимость]
 FROM OrderItems oi
 JOIN Services s ON s.ServiceID = oi.ServiceID;
+GO
+
+-- Полная история заказов: все заказы всех клиентов и сотрудников, по строкам состава
+CREATE VIEW vOrderHistory AS
+SELECT  o.OrderID                               AS [Номер заказа],
+        o.OrderDate                             AS [Дата],
+        c.LastName + N' ' + c.FirstName         AS [Клиент],
+        e.LastName + N' ' + e.FirstName         AS [Сотрудник],
+        s.Name                                  AS [Услуга],
+        oi.Quantity                             AS [Кол-во],
+        oi.Quantity * oi.Price                  AS [Стоимость],
+        o.Status                                AS [Статус],
+        o.CompletedDate                         AS [Выполнен]
+FROM Orders o
+JOIN Clients c     ON c.ClientID = o.ClientID
+JOIN Employees e   ON e.EmployeeID = o.EmployeeID
+JOIN OrderItems oi ON oi.OrderID = o.OrderID
+JOIN Services s    ON s.ServiceID = oi.ServiceID;
 GO
 
 /* =====================================================================
@@ -287,14 +306,65 @@ BEGIN
 END
 GO
 
--- Редактировать заказ (сотрудник, срок, комментарий)
+-- Редактировать все данные заказа: клиент, сотрудник, дата заказа, срок, статус, комментарий.
+-- Дата выполнения ставится сама: при статусе «Выполнен» или «Выдан» — текущая (если ещё не стояла),
+-- при возврате в «Принят» или «В работе» — очищается.
 CREATE PROCEDURE sp_UpdateOrder
-    @OrderID INT, @EmployeeID INT, @DueDate DATE, @Comment NVARCHAR(200) = NULL
+    @OrderID INT, @ClientID INT, @EmployeeID INT, @OrderDate DATETIME, @DueDate DATE,
+    @Status NVARCHAR(20), @Comment NVARCHAR(200) = NULL
 AS
 BEGIN
-    UPDATE Orders SET EmployeeID = @EmployeeID, DueDate = @DueDate, Comment = @Comment
+    IF @DueDate < CAST(@OrderDate AS DATE)
+    BEGIN
+        RAISERROR(N'Срок выполнения не может быть раньше даты заказа', 16, 1);
+        RETURN;
+    END
+    UPDATE Orders
+    SET ClientID = @ClientID, EmployeeID = @EmployeeID, OrderDate = @OrderDate, DueDate = @DueDate,
+        Status = @Status, Comment = @Comment,
+        CompletedDate = CASE WHEN @Status IN (N'Выполнен', N'Выдан') THEN ISNULL(CompletedDate, GETDATE())
+                             WHEN @Status IN (N'Принят', N'В работе') THEN NULL
+                             ELSE CompletedDate END
     WHERE OrderID = @OrderID;
     IF @@ROWCOUNT = 0 RAISERROR(N'Заказ с таким номером не найден', 16, 1);
+END
+GO
+
+-- Изменить строку заказа: другая услуга или другое количество.
+-- Если услуга та же — цена остаётся прежней, если услуга другая — берётся цена из прайс-листа.
+CREATE PROCEDURE sp_UpdateOrderItem
+    @OrderItemID INT, @ServiceID INT, @Quantity INT
+AS
+BEGIN
+    UPDATE oi
+    SET ServiceID = @ServiceID,
+        Quantity  = @Quantity,
+        Price     = CASE WHEN oi.ServiceID = @ServiceID THEN oi.Price ELSE s.Price END
+    FROM OrderItems oi
+    JOIN Services s ON s.ServiceID = @ServiceID
+    WHERE oi.OrderItemID = @OrderItemID;
+    IF @@ROWCOUNT = 0 RAISERROR(N'Строка заказа или услуга не найдена', 16, 1);
+END
+GO
+
+-- Удалить услугу из заказа. Последнюю услугу удалить нельзя — в заказе должна остаться хотя бы одна.
+CREATE PROCEDURE sp_DeleteOrderItem
+    @OrderItemID INT
+AS
+BEGIN
+    DECLARE @OrderID INT;
+    SELECT @OrderID = OrderID FROM OrderItems WHERE OrderItemID = @OrderItemID;
+    IF @OrderID IS NULL
+    BEGIN
+        RAISERROR(N'Строка заказа не найдена', 16, 1);
+        RETURN;
+    END
+    IF (SELECT COUNT(*) FROM OrderItems WHERE OrderID = @OrderID) <= 1
+    BEGIN
+        RAISERROR(N'Это единственная услуга в заказе. Если заказ не нужен — отмените его.', 16, 1);
+        RETURN;
+    END
+    DELETE FROM OrderItems WHERE OrderItemID = @OrderItemID;
 END
 GO
 
@@ -308,6 +378,35 @@ BEGIN
         CompletedDate = CASE WHEN @Status = N'Выполнен' THEN GETDATE() ELSE CompletedDate END
     WHERE OrderID = @OrderID;
     IF @@ROWCOUNT = 0 RAISERROR(N'Заказ с таким номером не найден', 16, 1);
+END
+GO
+
+-- Отмена заказа сотрудником. Нельзя отменить заказ, который уже выдан клиенту или уже отменён.
+CREATE PROCEDURE sp_CancelOrder
+    @OrderID INT, @Reason NVARCHAR(200) = NULL
+AS
+BEGIN
+    DECLARE @Status NVARCHAR(20);
+    SELECT @Status = Status FROM Orders WHERE OrderID = @OrderID;
+    IF @Status IS NULL
+    BEGIN
+        RAISERROR(N'Заказ с таким номером не найден', 16, 1);
+        RETURN;
+    END
+    IF @Status = N'Выдан'
+    BEGIN
+        RAISERROR(N'Заказ уже выдан клиенту, отменить его нельзя', 16, 1);
+        RETURN;
+    END
+    IF @Status = N'Отменён'
+    BEGIN
+        RAISERROR(N'Заказ уже отменён', 16, 1);
+        RETURN;
+    END
+    UPDATE Orders
+    SET Status = N'Отменён',
+        Comment = CASE WHEN @Reason IS NULL THEN Comment ELSE N'Отмена: ' + @Reason END
+    WHERE OrderID = @OrderID;
 END
 GO
 
@@ -360,8 +459,13 @@ SELECT * FROM vOrders ORDER BY [Дата заказа] DESC;
 -- EXEC sp_AddOrder 7, 1, '2026-11-20', N'Срочно';      -- вернёт номер заказа, например 11
 -- EXEC sp_AddOrderItem 11, 2, 20;                      -- в заказ 11 добавить 20 фото 10x15
 -- EXEC sp_SetOrderStatus 11, N'Выполнен';
+-- EXEC sp_CancelOrder 9, N'Клиент передумал';   -- отмена заказа
+-- EXEC sp_UpdateOrder 8, 6, 2, '2026-11-07T10:00:00', '2026-11-20', N'В работе', N'Срок перенесён';
+-- EXEC sp_UpdateOrderItem 3, 3, 8;                 -- строка 3: услуга 3, количество 8
+-- EXEC sp_DeleteOrderItem 3;                       -- удалить строку 3 из заказа
 
 -- 3) История заказов конкретного клиента или сотрудника
+SELECT * FROM vOrderHistory ORDER BY [Дата] DESC;   -- вся история заказов
 EXEC sp_ClientOrderHistory 1;      -- все заказы клиента Иванова
 EXEC sp_EmployeeOrderHistory 3;    -- все заказы фотографа Гончара
 GO

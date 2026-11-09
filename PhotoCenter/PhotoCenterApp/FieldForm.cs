@@ -65,6 +65,13 @@ namespace PhotoCenterApp
             Add(key, label, date, true);
         }
 
+        public void AddDateTime(string key, string label, object value)
+        {
+            var date = new DateTimePicker { Format = DateTimePickerFormat.Custom, CustomFormat = "dd.MM.yyyy HH:mm" };
+            date.Value = value == null || value == DBNull.Value ? DateTime.Now : Convert.ToDateTime(value);
+            Add(key, label, date, true);
+        }
+
         /// <summary>Выпадающий список из таблицы (например, список клиентов): показывается textColumn, значение — valueColumn.</summary>
         public void AddCombo(string key, string label, DataTable table, string valueColumn, string textColumn, object selected)
         {
@@ -92,7 +99,14 @@ namespace PhotoCenterApp
             {
                 Control c = _fields[key].Input;
                 if (c is NumericUpDown) return ((NumericUpDown)c).Value;
-                if (c is DateTimePicker) return ((DateTimePicker)c).Value.Date;
+                var picker = c as DateTimePicker;
+                if (picker != null)
+                {
+                    DateTime v = picker.Value;
+                    return picker.Format == DateTimePickerFormat.Custom
+                        ? new DateTime(v.Year, v.Month, v.Day, v.Hour, v.Minute, 0)
+                        : v.Date;
+                }
                 var combo = c as ComboBox;
                 if (combo != null) return combo.DataSource != null ? combo.SelectedValue : combo.SelectedItem;
                 return c.Text.Trim();

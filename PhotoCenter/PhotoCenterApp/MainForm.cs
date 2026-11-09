@@ -27,6 +27,7 @@ namespace PhotoCenterApp
         // История
         private readonly RadioButton _byClient = new RadioButton { Text = "Клиент", Checked = true, AutoSize = true };
         private readonly RadioButton _byEmployee = new RadioButton { Text = "Сотрудник", AutoSize = true };
+        private readonly RadioButton _allOrders = new RadioButton { Text = "Все заказы", AutoSize = true };
         private readonly ComboBox _person = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 300 };
         private readonly DataGridView _history = CreateGrid();
         private readonly Label _historyTotal = new Label { AutoSize = true, Font = new Font("Segoe UI", 10F, FontStyle.Bold) };
@@ -36,7 +37,7 @@ namespace PhotoCenterApp
             Text = "Фотоцентр — учёт клиентов, сотрудников, услуг и заказов   [сервер: " + Db.Server + ", база: " + Db.DatabaseName + "]";
             Font = new Font("Segoe UI", 10F);
             StartPosition = FormStartPosition.CenterScreen;
-            Size = new Size(1200, 720);
+            Size = new Size(1280, 760);
             MinimumSize = new Size(900, 550);
 
             _tabs.TabPages.Add(BuildClientsTab());
@@ -303,9 +304,11 @@ namespace PhotoCenterApp
             var bar = CreateToolbar();
             bar.Controls.Add(Btn("Новый заказ", NewOrder));
             bar.Controls.Add(Btn("Изменить заказ", EditOrder));
-            bar.Controls.Add(Btn("Добавить услугу в заказ", AddOrderItem));
+            bar.Controls.Add(Btn("Добавить услугу", AddOrderItem));
+            bar.Controls.Add(Btn("Отменить заказ", CancelOrder));
             bar.Controls.Add(Lbl("Статус:"));
-            _newStatus.Items.AddRange(Statuses);
+            // «Отменён» ставится отдельной кнопкой «Отменить заказ» — там есть проверки
+            _newStatus.Items.AddRange(new[] { "Принят", "В работе", "Выполнен", "Выдан" });
             _newStatus.SelectedIndex = 1;
             bar.Controls.Add(_newStatus);
             bar.Controls.Add(Btn("Установить", SetStatus));
@@ -318,9 +321,14 @@ namespace PhotoCenterApp
 
             var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
             split.Panel1.Controls.Add(_orders);
-            var itemsTitle = new Label { Text = "Состав выбранного заказа:", Dock = DockStyle.Top, Height = 26, Padding = new Padding(4, 5, 0, 0) };
+            var itemsBar = CreateToolbar();
+            itemsBar.Controls.Add(new Label { Text = "Состав выбранного заказа:", AutoSize = true, Margin = new Padding(0, 6, 10, 0),
+                                              Font = new Font("Segoe UI", 10F, FontStyle.Bold) });
+            itemsBar.Controls.Add(Btn("Изменить услугу/количество", EditOrderItem));
+            itemsBar.Controls.Add(Btn("Удалить услугу из заказа", DeleteOrderItem));
             split.Panel2.Controls.Add(_orderItems);
-            split.Panel2.Controls.Add(itemsTitle);
+            split.Panel2.Controls.Add(itemsBar);
+            _orderItems.CellDoubleClick += EditOrderItem;
             page.Controls.Add(split);
             page.Controls.Add(bar);
             Shown += delegate { split.SplitterDistance = (int)(split.Height * 0.62); };
@@ -408,13 +416,18 @@ namespace PhotoCenterApp
             try
             {
                 DataRow row = Db.Query("SELECT * FROM Orders WHERE OrderID = @id", Db.P("@id", id)).Rows[0];
-                var f = new FieldForm("Заказ № " + id);
+                var f = new FieldForm("Изменение заказа № " + id);
+                f.AddCombo("client", "Клиент", ClientsList(), "ClientID", "Name", row["ClientID"]);
                 f.AddCombo("employee", "Сотрудник", EmployeesList(), "EmployeeID", "Name", row["EmployeeID"]);
+                f.AddDateTime("date", "Дата заказа", row["OrderDate"]);
                 f.AddDate("due", "Срок выполнения", row["DueDate"]);
+                f.AddList("status", "Статус", Statuses, row["Status"].ToString());
                 f.AddText("comment", "Комментарий", row["Comment"], false);
                 if (f.ShowDialog(this) != DialogResult.OK) return;
-                Db.Proc("sp_UpdateOrder", Db.P("@OrderID", id), Db.P("@EmployeeID", f["employee"]), Db.P("@DueDate", f["due"]), Db.P("@Comment", f["comment"]));
+                Db.Proc("sp_UpdateOrder", Db.P("@OrderID", id), Db.P("@ClientID", f["client"]), Db.P("@EmployeeID", f["employee"]),
+                    Db.P("@OrderDate", f["date"]), Db.P("@DueDate", f["due"]), Db.P("@Status", f["status"]), Db.P("@Comment", f["comment"]));
                 LoadOrders();
+                LoadClients();
                 LoadEmployees();
             }
             catch (Exception ex) { Error(ex); }
@@ -448,6 +461,53 @@ namespace PhotoCenterApp
             catch (Exception ex) { Error(ex); }
         }
 
+        private void EditOrderItem(object sender, EventArgs e)
+        {
+            int? itemId = SelectedId(_orderItems);
+            if (itemId == null) { NeedSelection("услугу в составе заказа"); return; }
+            try
+            {
+                DataRow row = Db.Query("SELECT * FROM OrderItems WHERE OrderItemID = @id", Db.P("@id", itemId)).Rows[0];
+                var f = new FieldForm("Изменение услуги в заказе № " + row["OrderID"]);
+                f.AddCombo("service", "Услуга", ServicesList(), "ServiceID", "Name", row["ServiceID"]);
+                f.AddNumber("qty", "Количество", row["Quantity"], 1, 10000, 0);
+                if (f.ShowDialog(this) != DialogResult.OK) return;
+                Db.Proc("sp_UpdateOrderItem", Db.P("@OrderItemID", itemId), Db.P("@ServiceID", f["service"]), Db.P("@Quantity", Convert.ToInt32(f["qty"])));
+                LoadOrders();
+            }
+            catch (Exception ex) { Error(ex); }
+        }
+
+        private void DeleteOrderItem(object sender, EventArgs e)
+        {
+            int? itemId = SelectedId(_orderItems);
+            if (itemId == null) { NeedSelection("услугу в составе заказа"); return; }
+            if (MessageBox.Show("Удалить выбранную услугу из заказа?", "Удаление", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+            try
+            {
+                Db.Proc("sp_DeleteOrderItem", Db.P("@OrderItemID", itemId));
+                LoadOrders();
+            }
+            catch (Exception ex) { Error(ex); }
+        }
+
+        private void CancelOrder(object sender, EventArgs e)
+        {
+            int? id = SelectedId(_orders);
+            if (id == null) { NeedSelection("заказ"); return; }
+            try
+            {
+                var f = new FieldForm("Отмена заказа № " + id);
+                f.AddText("reason", "Причина отмены", null, false);
+                if (f.ShowDialog(this) != DialogResult.OK) return;
+                Db.Proc("sp_CancelOrder", Db.P("@OrderID", id), Db.P("@Reason", f["reason"]));
+                LoadOrders();
+                MessageBox.Show("Заказ № " + id + " отменён.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex) { Error(ex); }
+        }
+
         // ================== История заказов ==================
 
         private TabPage BuildHistoryTab()
@@ -457,12 +517,14 @@ namespace PhotoCenterApp
             bar.Controls.Add(Lbl("Показать историю:"));
             bar.Controls.Add(_byClient);
             bar.Controls.Add(_byEmployee);
+            bar.Controls.Add(_allOrders);
             bar.Controls.Add(_person);
             bar.Controls.Add(Btn("Показать", delegate { LoadHistory(); }));
             bar.Controls.Add(_historyTotal);
-            _byClient.Margin = _byEmployee.Margin = new Padding(6, 6, 3, 0);
+            _byClient.Margin = _byEmployee.Margin = _allOrders.Margin = new Padding(6, 6, 3, 0);
             _historyTotal.Margin = new Padding(12, 6, 3, 0);
-            _byClient.CheckedChanged += delegate { LoadPeople(); };
+            foreach (var radio in new[] { _byClient, _byEmployee, _allOrders })
+                radio.CheckedChanged += delegate(object s, EventArgs e) { if (((RadioButton)s).Checked) LoadPeople(); };
             _person.SelectedIndexChanged += delegate { LoadHistory(); };
             page.Controls.Add(_history);
             page.Controls.Add(bar);
@@ -476,10 +538,14 @@ namespace PhotoCenterApp
             _loadingPeople = true;
             try
             {
-                _person.DataSource = null;
-                _person.DisplayMember = "Name";
-                _person.ValueMember = _byClient.Checked ? "ClientID" : "EmployeeID";
-                _person.DataSource = _byClient.Checked ? ClientsList() : EmployeesList();
+                _person.Enabled = !_allOrders.Checked;
+                if (!_allOrders.Checked)
+                {
+                    _person.DataSource = null;
+                    _person.DisplayMember = "Name";
+                    _person.ValueMember = _byClient.Checked ? "ClientID" : "EmployeeID";
+                    _person.DataSource = _byClient.Checked ? ClientsList() : EmployeesList();
+                }
             }
             catch (Exception ex) { Error(ex); }
             finally { _loadingPeople = false; }
@@ -488,15 +554,20 @@ namespace PhotoCenterApp
 
         private void LoadHistory()
         {
-            if (_loadingPeople || _person.SelectedValue == null || _person.SelectedValue is DataRowView) return;
+            if (_loadingPeople) return;
+            if (!_allOrders.Checked && (_person.SelectedValue == null || _person.SelectedValue is DataRowView)) return;
             try
             {
-                DataTable t = _byClient.Checked
-                    ? Db.Proc("sp_ClientOrderHistory", Db.P("@ClientID", _person.SelectedValue))
-                    : Db.Proc("sp_EmployeeOrderHistory", Db.P("@EmployeeID", _person.SelectedValue));
+                DataTable t;
+                if (_allOrders.Checked)
+                    t = Db.Query("SELECT * FROM vOrderHistory ORDER BY [Дата] DESC, [Номер заказа] DESC");
+                else if (_byClient.Checked)
+                    t = Db.Proc("sp_ClientOrderHistory", Db.P("@ClientID", _person.SelectedValue));
+                else
+                    t = Db.Proc("sp_EmployeeOrderHistory", Db.P("@EmployeeID", _person.SelectedValue));
                 _history.DataSource = t;
 
-                string sumColumn = _byClient.Checked ? "Стоимость" : "Сумма";
+                string sumColumn = _byEmployee.Checked ? "Сумма" : "Стоимость";
                 decimal total = 0;
                 var orders = new System.Collections.Generic.HashSet<int>();
                 foreach (DataRow r in t.Rows)
