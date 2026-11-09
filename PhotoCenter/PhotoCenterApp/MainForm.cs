@@ -137,28 +137,6 @@ namespace PhotoCenterApp
             }
         }
 
-        /// <summary>Легенда цветов статусов (полоска внизу вкладки).</summary>
-        private static FlowLayoutPanel CreateLegend(bool withOverdue)
-        {
-            var panel = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, Padding = new Padding(6, 8, 6, 0), WrapContents = false };
-            panel.Controls.Add(new Label { Text = "Статусы:", AutoSize = true, Margin = new Padding(0, 4, 6, 0) });
-            for (int i = 0; i < Statuses.Length; i++)
-            {
-                Color[] c = StatusColors[Statuses[i]];
-                panel.Controls.Add(new Label
-                {
-                    Text = Statuses[i],
-                    AutoSize = true, BackColor = c[0], ForeColor = c[1], Padding = new Padding(10, 3, 10, 3),
-                    Margin = new Padding(0, 0, 8, 0), Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-                });
-            }
-            if (withOverdue)
-                panel.Controls.Add(new Label { Text = "Срок просрочен", AutoSize = true, BackColor = Color.FromArgb(190, 18, 60),
-                    ForeColor = Color.White, Padding = new Padding(10, 3, 10, 3),
-                    Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), Margin = new Padding(16, 0, 0, 0) });
-            return panel;
-        }
-
         private static FlowLayoutPanel CreateToolbar()
         {
             return new FlowLayoutPanel { Dock = DockStyle.Top, Height = 46, Padding = new Padding(6, 6, 6, 0), WrapContents = false };
@@ -399,7 +377,6 @@ namespace PhotoCenterApp
             split.Panel2.Controls.Add(itemsBar);
             _orderItems.CellDoubleClick += EditOrderItem;
             page.Controls.Add(split);
-            page.Controls.Add(CreateLegend(true));
             page.Controls.Add(bar);
             Shown += delegate { split.SplitterDistance = (int)(split.Height * 0.62); };
 
@@ -597,7 +574,6 @@ namespace PhotoCenterApp
                 radio.CheckedChanged += delegate(object s, EventArgs e) { if (((RadioButton)s).Checked) LoadPeople(); };
             _person.SelectedIndexChanged += delegate { LoadHistory(); };
             page.Controls.Add(_history);
-            page.Controls.Add(CreateLegend(false));
             page.Controls.Add(bar);
             return page;
         }
