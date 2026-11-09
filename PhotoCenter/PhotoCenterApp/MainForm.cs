@@ -14,11 +14,11 @@ namespace PhotoCenterApp
         // Цвета статусов: фон, текст, фон выделенной строки
         private static readonly Dictionary<string, Color[]> StatusColors = new Dictionary<string, Color[]>
         {
-            { "Принят",   new[] { Color.FromArgb(219, 234, 254), Color.FromArgb(30, 64, 175),  Color.FromArgb(147, 197, 253) } },
-            { "В работе", new[] { Color.FromArgb(255, 237, 213), Color.FromArgb(154, 52, 18),  Color.FromArgb(253, 186, 116) } },
-            { "Выполнен", new[] { Color.FromArgb(187, 247, 208), Color.FromArgb(21, 101, 52),  Color.FromArgb(74, 222, 128) } },
-            { "Выдан",    new[] { Color.FromArgb(226, 232, 226), Color.FromArgb(55, 85, 60),   Color.FromArgb(180, 196, 182) } },
-            { "Отменён",  new[] { Color.FromArgb(254, 226, 226), Color.FromArgb(185, 28, 28),  Color.FromArgb(252, 165, 165) } },
+            { "Принят",   new[] { Color.FromArgb(37, 99, 235),  Color.White, Color.FromArgb(29, 78, 216) } },
+            { "В работе", new[] { Color.FromArgb(249, 115, 22), Color.White, Color.FromArgb(234, 88, 12) } },
+            { "Выполнен", new[] { Color.FromArgb(22, 163, 74),  Color.White, Color.FromArgb(21, 128, 61) } },
+            { "Выдан",    new[] { Color.FromArgb(13, 148, 136), Color.White, Color.FromArgb(15, 118, 110) } },
+            { "Отменён",  new[] { Color.FromArgb(220, 38, 38),  Color.White, Color.FromArgb(185, 28, 28) } },
         };
         private static readonly Font BoldFont = new Font("Segoe UI", 10F, FontStyle.Bold);
 
@@ -126,8 +126,10 @@ namespace PhotoCenterApp
                 bool overdue = (status == "Принят" || status == "В работе") && Convert.ToDateTime(e.Value).Date < DateTime.Today;
                 if (overdue)
                 {
-                    e.CellStyle.ForeColor = Color.FromArgb(185, 28, 28);
-                    e.CellStyle.SelectionForeColor = Color.FromArgb(254, 226, 226);
+                    e.CellStyle.BackColor = Color.FromArgb(190, 18, 60);
+                    e.CellStyle.ForeColor = Color.White;
+                    e.CellStyle.SelectionBackColor = Color.FromArgb(159, 18, 57);
+                    e.CellStyle.SelectionForeColor = Color.White;
                     e.CellStyle.Font = BoldFont;
                     e.Value = Convert.ToDateTime(e.Value).ToString("dd.MM.yyyy") + "  просрочен";
                     e.FormattingApplied = true;
@@ -138,21 +140,22 @@ namespace PhotoCenterApp
         /// <summary>Легенда цветов статусов (полоска внизу вкладки).</summary>
         private static FlowLayoutPanel CreateLegend(bool withOverdue)
         {
-            var panel = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 36, Padding = new Padding(6, 6, 6, 0), WrapContents = false };
+            var panel = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, Padding = new Padding(6, 8, 6, 0), WrapContents = false };
             panel.Controls.Add(new Label { Text = "Статусы:", AutoSize = true, Margin = new Padding(0, 4, 6, 0) });
             for (int i = 0; i < Statuses.Length; i++)
             {
                 Color[] c = StatusColors[Statuses[i]];
                 panel.Controls.Add(new Label
                 {
-                    Text = " " + Statuses[i] + " ",
-                    AutoSize = true, BackColor = c[0], ForeColor = c[1], Padding = new Padding(4, 3, 4, 3),
-                    Margin = new Padding(0, 0, 8, 0), Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Text = Statuses[i],
+                    AutoSize = true, BackColor = c[0], ForeColor = c[1], Padding = new Padding(10, 3, 10, 3),
+                    Margin = new Padding(0, 0, 8, 0), Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 });
             }
             if (withOverdue)
-                panel.Controls.Add(new Label { Text = "красный срок — заказ просрочен", AutoSize = true,
-                    ForeColor = Color.FromArgb(185, 28, 28), Font = new Font("Segoe UI", 9F, FontStyle.Bold), Margin = new Padding(4, 4, 0, 0) });
+                panel.Controls.Add(new Label { Text = "Срок просрочен", AutoSize = true, BackColor = Color.FromArgb(190, 18, 60),
+                    ForeColor = Color.White, Padding = new Padding(10, 3, 10, 3),
+                    Font = new Font("Segoe UI", 9.5F, FontStyle.Bold), Margin = new Padding(16, 0, 0, 0) });
             return panel;
         }
 
