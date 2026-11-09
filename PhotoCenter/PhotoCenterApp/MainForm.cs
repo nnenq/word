@@ -1,5 +1,6 @@
 ﻿// Главное окно: вкладки «Клиенты», «Сотрудники», «Услуги», «Заказы», «История заказов».
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
@@ -9,6 +10,17 @@ namespace PhotoCenterApp
     class MainForm : Form
     {
         private static readonly string[] Statuses = { "Принят", "В работе", "Выполнен", "Выдан", "Отменён" };
+
+        // Цвета статусов: фон, текст, фон выделенной строки
+        private static readonly Dictionary<string, Color[]> StatusColors = new Dictionary<string, Color[]>
+        {
+            { "Принят",   new[] { Color.FromArgb(219, 234, 254), Color.FromArgb(30, 64, 175),  Color.FromArgb(147, 197, 253) } },
+            { "В работе", new[] { Color.FromArgb(255, 237, 213), Color.FromArgb(154, 52, 18),  Color.FromArgb(253, 186, 116) } },
+            { "Выполнен", new[] { Color.FromArgb(187, 247, 208), Color.FromArgb(21, 101, 52),  Color.FromArgb(74, 222, 128) } },
+            { "Выдан",    new[] { Color.FromArgb(226, 232, 226), Color.FromArgb(55, 85, 60),   Color.FromArgb(180, 196, 182) } },
+            { "Отменён",  new[] { Color.FromArgb(254, 226, 226), Color.FromArgb(185, 28, 28),  Color.FromArgb(252, 165, 165) } },
+        };
+        private static readonly Font BoldFont = new Font("Segoe UI", 10F, FontStyle.Bold);
 
         private readonly TabControl _tabs = new TabControl { Dock = DockStyle.Fill };
 
@@ -77,6 +89,7 @@ namespace PhotoCenterApp
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 BackgroundColor = Color.White,
             };
+            g.CellFormatting += StatusCellFormatting;
             g.DataBindingComplete += delegate
             {
                 foreach (DataGridViewColumn col in g.Columns)
@@ -88,6 +101,59 @@ namespace PhotoCenterApp
                 }
             };
             return g;
+        }
+
+        /// <summary>Раскраска ячеек: столбец «Статус» — цветом статуса, «Срок» — красным, если заказ просрочен.</summary>
+        private static void StatusCellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            var g = (DataGridView)sender;
+            if (e.RowIndex < 0 || e.Value == null || e.Value == DBNull.Value) return;
+            string header = g.Columns[e.ColumnIndex].HeaderText;
+
+            if (header == "Статус")
+            {
+                Color[] c;
+                if (!StatusColors.TryGetValue(e.Value.ToString(), out c)) return;
+                e.CellStyle.BackColor = c[0];
+                e.CellStyle.ForeColor = c[1];
+                e.CellStyle.SelectionBackColor = c[2];
+                e.CellStyle.SelectionForeColor = c[1];
+                e.CellStyle.Font = BoldFont;
+            }
+            else if (header == "Срок" && g.Columns.Contains("Статус"))
+            {
+                string status = Convert.ToString(g.Rows[e.RowIndex].Cells["Статус"].Value);
+                bool overdue = (status == "Принят" || status == "В работе") && Convert.ToDateTime(e.Value).Date < DateTime.Today;
+                if (overdue)
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(185, 28, 28);
+                    e.CellStyle.SelectionForeColor = Color.FromArgb(254, 226, 226);
+                    e.CellStyle.Font = BoldFont;
+                    e.Value = Convert.ToDateTime(e.Value).ToString("dd.MM.yyyy") + "  просрочен";
+                    e.FormattingApplied = true;
+                }
+            }
+        }
+
+        /// <summary>Легенда цветов статусов (полоска внизу вкладки).</summary>
+        private static FlowLayoutPanel CreateLegend(bool withOverdue)
+        {
+            var panel = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 36, Padding = new Padding(6, 6, 6, 0), WrapContents = false };
+            panel.Controls.Add(new Label { Text = "Статусы:", AutoSize = true, Margin = new Padding(0, 4, 6, 0) });
+            for (int i = 0; i < Statuses.Length; i++)
+            {
+                Color[] c = StatusColors[Statuses[i]];
+                panel.Controls.Add(new Label
+                {
+                    Text = " " + Statuses[i] + " ",
+                    AutoSize = true, BackColor = c[0], ForeColor = c[1], Padding = new Padding(4, 3, 4, 3),
+                    Margin = new Padding(0, 0, 8, 0), Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                });
+            }
+            if (withOverdue)
+                panel.Controls.Add(new Label { Text = "красный срок — заказ просрочен", AutoSize = true,
+                    ForeColor = Color.FromArgb(185, 28, 28), Font = new Font("Segoe UI", 9F, FontStyle.Bold), Margin = new Padding(4, 4, 0, 0) });
+            return panel;
         }
 
         private static FlowLayoutPanel CreateToolbar()
@@ -330,6 +396,7 @@ namespace PhotoCenterApp
             split.Panel2.Controls.Add(itemsBar);
             _orderItems.CellDoubleClick += EditOrderItem;
             page.Controls.Add(split);
+            page.Controls.Add(CreateLegend(true));
             page.Controls.Add(bar);
             Shown += delegate { split.SplitterDistance = (int)(split.Height * 0.62); };
 
@@ -527,6 +594,7 @@ namespace PhotoCenterApp
                 radio.CheckedChanged += delegate(object s, EventArgs e) { if (((RadioButton)s).Checked) LoadPeople(); };
             _person.SelectedIndexChanged += delegate { LoadHistory(); };
             page.Controls.Add(_history);
+            page.Controls.Add(CreateLegend(false));
             page.Controls.Add(bar);
             return page;
         }
