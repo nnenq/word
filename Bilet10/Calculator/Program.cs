@@ -4,7 +4,6 @@
 
 using System;
 using System.Globalization;
-using System.Text;
 
 namespace Calculator
 {
@@ -12,7 +11,7 @@ namespace Calculator
     {
         static void Main()
         {
-            Console.OutputEncoding = Encoding.UTF8;
+            // Кодировку консоли не меняем: так русский текст правильно выводится и в Windows 7, и в Windows 10/11.
             Console.Title = "Калькулятор — вызов методов";
 
             while (true)
